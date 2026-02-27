@@ -74,6 +74,7 @@ include(
     "widget",
     "zgw:catalogi-api",
     "zgw:documenten-api",
+    "zgw:documenten-api-preview",
     "zgw:klantinteracties-api",
     "zgw:notificaties-api",
     "zgw:object-management",
