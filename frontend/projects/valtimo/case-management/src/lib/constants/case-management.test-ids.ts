@@ -93,7 +93,14 @@ export const CASE_MANAGEMENT_MIGRATION_TEST_IDS = {
   removeBuildingBlockTab: 'caseMigrationRemoveBuildingBlockTab',
   jsonEditorTab: 'caseMigrationJsonEditorTab',
   addPatchButton: 'caseMigrationAddPatchButton',
+  deletePatchButton: 'caseMigrationDeletePatchButton',
   addInstructionButton: 'caseMigrationAddInstructionButton',
+  deleteInstructionButton: 'caseMigrationDeleteInstructionButton',
+  toggleInstructionButton: 'caseMigrationToggleInstructionButton',
+  addMappingButton: 'caseMigrationAddMappingButton',
+  deleteMappingButton: 'caseMigrationDeleteMappingButton',
+  addVariableButton: 'caseMigrationAddVariableButton',
+  deleteVariableButton: 'caseMigrationDeleteVariableButton',
   sourceKeySelect: 'caseMigrationSourceKeySelect',
   sourceVersionSelect: 'caseMigrationSourceVersionSelect',
   targetReadout: 'caseMigrationTargetReadout',
@@ -101,6 +108,11 @@ export const CASE_MANAGEMENT_MIGRATION_TEST_IDS = {
   addConditionGroupButton: 'caseMigrationAddConditionGroupButton',
   addBuildingBlockButton: 'caseMigrationAddBuildingBlockButton',
   removeBuildingBlockButton: 'caseMigrationRemoveBuildingBlockButton',
+  deleteBuildingBlockEntryButton: 'caseMigrationDeleteBuildingBlockEntryButton',
+  toggleBuildingBlockEntryButton: 'caseMigrationToggleBuildingBlockEntryButton',
+  detailModalCloseButton: 'caseMigrationDetailModalCloseButton',
+  toggleErrorButton: 'caseMigrationToggleErrorButton',
+  copyErrorButton: 'caseMigrationCopyErrorButton',
 } as const;
 
 export const CASE_MANAGEMENT_LIST_COLUMNS_TEST_IDS = {
