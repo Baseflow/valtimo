@@ -54,8 +54,6 @@ export class BuildingBlockEntryLookupService {
   // Value-path contexts, memoized so the selectors get a stable object reference per render.
   private readonly _contexts = new Map<string, ValuePathContext>();
 
-  constructor(private readonly buildingBlockApiService: ProcessLinkBuildingBlockApiService) {}
-
   /** Fires whenever a cache fills, so an OnPush host knows to re-render. */
   public get changed$(): Observable<void> {
     return this._changed$.asObservable();
@@ -65,6 +63,8 @@ export class BuildingBlockEntryLookupService {
   public get definitionsLoaded$(): Observable<void> {
     return this._definitionsLoaded$.asObservable();
   }
+
+  constructor(private readonly buildingBlockApiService: ProcessLinkBuildingBlockApiService) {}
 
   /** Every deployed building block. This endpoint answers the latest version per key only, so the version dropdown comes from [ensureVersionItems] instead. */
   public loadDefinitions(): void {
@@ -95,6 +95,12 @@ export class BuildingBlockEntryLookupService {
 
   public latestVersionOf(key: string): string | null {
     return this._latestVersion.get(key) ?? null;
+  }
+
+  /** Version to resolve an entry's processes and value paths at: its own, else the block's latest, since a `remove` entry may leave it open. */
+  public resolvedVersionOf(key: string | null, versionTag: string | null): string | null {
+    if (!key) return null;
+    return versionTag || this.latestVersionOf(key);
   }
 
   /** Fetch (once, cached) every deployed version of [key] — a plan regularly names an older block version than the newest deployed. */
