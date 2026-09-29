@@ -14,9 +14,4 @@
  * limitations under the License.
  */
 
-@use 'migration-tab-layout' as layout;
-
-/* Styles what a host projects into `<ng-content>`. Angular stamps projected content with the host's encapsulation attribute, so the tab's own sheet stops at the projection boundary; `::ng-deep` is bounded by `:host` and BEM-prefixed. */
-:host ::ng-deep {
-  @include layout.blocks;
-}
+export * from './migration-schedule.utils';

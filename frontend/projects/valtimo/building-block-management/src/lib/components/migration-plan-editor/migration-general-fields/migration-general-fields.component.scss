@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-// What the list itself renders. The run's own figures are the detail modal's — see its stylesheet.
-::ng-deep .cds-tag--no-margin {
-  margin: 0;
-}
+@use '../styles/migration-tab-layout' as layout;
 
-.migration-progress {
-  margin-right: var(--cds-spacing-03);
-  font-variant-numeric: tabular-nums;
+/* Styles what a host projects into `<ng-content>`. Angular stamps projected content with the host's encapsulation attribute, so the tab's own sheet stops at the projection boundary; `::ng-deep` is bounded by `:host` and BEM-prefixed. */
+:host ::ng-deep {
+  @include layout.blocks;
 }

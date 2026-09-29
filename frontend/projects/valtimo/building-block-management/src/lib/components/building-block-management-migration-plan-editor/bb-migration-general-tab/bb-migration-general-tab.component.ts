@@ -19,16 +19,13 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@
 import {TranslateModule} from '@ngx-translate/core';
 import {SelectItem} from '@valtimo/components';
 import {BUILDING_BLOCK_MANAGEMENT_MIGRATION_TEST_IDS} from '../../../constants';
-import {MigrationPlan} from '../../../models';
-import {
-  GeneralFieldsValue,
-  MigrationGeneralFieldsComponent,
-} from '../../migration-plan-editor/tabs/migration-general-fields.component';
+import {GeneralFieldsValue, MigrationPlan} from '../../../models';
+import {MigrationGeneralFieldsComponent} from '../../migration-plan-editor/migration-general-fields/migration-general-fields.component';
 
 @Component({
   standalone: true,
   selector: 'valtimo-bb-migration-general-tab',
-  templateUrl: './migration-general-tab.component.html',
+  templateUrl: './bb-migration-general-tab.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslateModule, MigrationGeneralFieldsComponent],
 })

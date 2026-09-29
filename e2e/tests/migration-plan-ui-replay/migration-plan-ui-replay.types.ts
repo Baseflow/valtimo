@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-// What the list itself renders. The run's own figures are the detail modal's — see its stylesheet.
-::ng-deep .cds-tag--no-margin {
-  margin: 0;
+import {AuditEntry, PlanTarget} from './plan-editor.page';
+
+/** One deployed fixture plan, with the target that locates it in the editor. */
+export interface Fixture extends PlanTarget {
+  label: string;
+  plan: Record<string, any>;
 }
 
-.migration-progress {
-  margin-right: var(--cds-spacing-03);
-  font-variant-numeric: tabular-nums;
+/** What replaying one fixture through the editor produced. */
+export interface PlanResult {
+  plan: string;
+  saved: boolean;
+  reason?: string;
+  differences: string[];
+  audit: AuditEntry[];
+  /** Set when the fixture could not be put back — a plan the save path refuses needs a redeploy. */
+  restoreFailed?: string;
 }

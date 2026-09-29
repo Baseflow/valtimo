@@ -27,13 +27,7 @@ import {
   Output,
   SimpleChanges,
 } from '@angular/core';
-import {
-  AbstractControl,
-  FormArray,
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-} from '@angular/forms';
+import {FormArray, FormBuilder, FormGroup, ReactiveFormsModule} from '@angular/forms';
 import {TranslateModule} from '@ngx-translate/core';
 import {Add16, ChevronDown16, ChevronUp16, TrashCan16, WarningFilled16} from '@carbon/icons';
 import {
@@ -46,38 +40,28 @@ import {
 } from 'carbon-components-angular';
 import {ProcessService} from '@valtimo/process';
 import {ValuePathSelectorComponent, ValuePathSelectorPrefix} from '@valtimo/components';
-import {forkJoin, of, Subscription} from 'rxjs';
-import {catchError, debounceTime} from 'rxjs/operators';
+import {Subscription} from 'rxjs';
 import {
+  ActivityMappingRequest,
   DataMigrationTargetType,
   MigrationEditorApi,
   MigrationEditorTestIds,
+  PatchMode,
   ProcessMigrationInstruction,
   ProcessVariablePatch,
   ValuePathContext,
 } from '../../../models';
-
-/** How the left ("from") side of a variable patch is filled: copy a field, set a literal, or null. */
-type PatchMode = 'path' | 'value' | 'null';
-
-interface FlowNodeOption {
-  id: string;
-  label: string;
-}
-
-interface InstructionActivities {
-  sourceNodes: FlowNodeOption[];
-  targetNodes: FlowNodeOption[];
-  loading: boolean;
-}
+import {MigrationActivityMappingComponent} from '../migration-activity-mapping/migration-activity-mapping.component';
+import {MigrationFlowNodeCacheService} from './migration-flow-node-cache.service';
 
 /** The `processMigration` component of a plan, for either blueprint type — the blueprint reaches it only through [api] and the two process maps. */
 @Component({
   standalone: true,
   selector: 'valtimo-migration-process-migration-tab',
   templateUrl: './migration-process-migration-tab.component.html',
-  styleUrls: ['./migration-tab.component.scss'],
+  styleUrls: ['../styles/migration-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [MigrationFlowNodeCacheService],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -88,6 +72,7 @@ interface InstructionActivities {
     InputModule,
     SelectModule,
     ValuePathSelectorComponent,
+    MigrationActivityMappingComponent,
   ],
 })
 export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges, OnDestroy {
@@ -134,9 +119,9 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
   private readonly _keyToLatestId = new Map<string, string>();
   // A suggested plan carries one instruction per process of the blueprint, each with its own mapping, so collapsed is the default.
   private readonly _expanded = new Set<FormGroup>();
-  private readonly _activities = new Map<FormGroup, InstructionActivities>();
-  // Per instruction: incompatible source activity id -> engine failure messages (as judged live).
-  private readonly _invalidMappings = new Map<FormGroup, Record<string, string[]>>();
+  private readonly _mappingRequests = new Map<FormGroup, ActivityMappingRequest>();
+  // Instructions whose author picked another process and has not had the suggestion for it yet.
+  private readonly _pendingSuggest = new Set<FormGroup>();
   private _lastEmitted = '[]';
   private readonly _subscriptions = new Subscription();
 
@@ -162,8 +147,10 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
         this._keyToLatestId.set(definition.key, definition.id);
       });
       this.processDefinitionKeys = Array.from(keys).sort();
-      // Load activities for instructions that were restored before the definitions were available.
-      this.instructionsArray.controls.forEach(control => this.loadActivities(control as FormGroup));
+      // Resolve instructions that were restored before the definitions were available.
+      this.instructionsArray.controls.forEach(control =>
+        this.requestMapping(control as FormGroup, false)
+      );
       this.cdr.markForCheck();
       // The process-definition <option>s only exist now, so re-sync the selects with their values.
       this.reapplySelections();
@@ -173,9 +160,11 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    // The scoping maps arrive asynchronously; re-resolve activities once the correct definition ids are known.
+    // The scoping maps arrive asynchronously; re-resolve once the correct definition ids are known.
     if (changes['sourceProcessDefinitions'] || changes['targetProcessDefinitions']) {
-      this.instructionsArray.controls.forEach(control => this.loadActivities(control as FormGroup));
+      this.instructionsArray.controls.forEach(control =>
+        this.requestMapping(control as FormGroup, false)
+      );
     }
   }
 
@@ -183,14 +172,21 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
     this._subscriptions.unsubscribe();
   }
 
-  public activitiesFor(group: FormGroup): InstructionActivities {
-    return this._activities.get(group) ?? {sourceNodes: [], targetNodes: [], loading: false};
+  /** What the instruction's activity mapping resolves against. A new object only when the ids change, so the child reloads only then. */
+  public mappingRequestFor(group: FormGroup): ActivityMappingRequest | null {
+    return this._mappingRequests.get(group) ?? null;
   }
 
-  /** The engine's failure messages for one mapping row, or empty when the pair is a valid migration. */
-  public mappingErrors(group: FormGroup, mapping: AbstractControl): string[] {
-    const source = mapping.get('source')?.value;
-    return (source && this._invalidMappings.get(group)?.[source]) || [];
+  public isSuggestPending(group: FormGroup): boolean {
+    return this._pendingSuggest.has(group);
+  }
+
+  public mapActivitiesArray(group: FormGroup): FormArray {
+    return group.get('mapActivities') as FormArray;
+  }
+
+  public setProcessVariablesArray(group: FormGroup): FormArray {
+    return group.get('setProcessVariables') as FormArray;
   }
 
   /** The keys this picker offers: the blueprint-linked ones, plus the instruction's own stored key so a now-unlinked process still shows its selection. */
@@ -200,19 +196,6 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
     const base = scoped ? Object.keys(scoped) : this.processDefinitionKeys;
     const stored = group.get(`${side}ProcessDefinitionKey`)?.value;
     return stored ? Array.from(new Set([...base, stored])) : Array.from(new Set(base));
-  }
-
-  /** Whether the target side offers [key]. A null scope is every deployed process, so anything the source offers is a target too. */
-  private isTargetProcessKey(key: string): boolean {
-    return !this.targetProcessDefinitions || key in this.targetProcessDefinitions;
-  }
-
-  public mapActivitiesArray(group: FormGroup): FormArray {
-    return group.get('mapActivities') as FormArray;
-  }
-
-  public setProcessVariablesArray(group: FormGroup): FormArray {
-    return group.get('setProcessVariables') as FormArray;
   }
 
   /** Whether this instruction's body is shown. Collapsed unless the author opened it — see [_expanded]. */
@@ -249,17 +232,9 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
   public removeInstruction(index: number): void {
     const group = this.instructionsArray.at(index) as FormGroup;
     this._expanded.delete(group);
-    this._activities.delete(group);
-    this._invalidMappings.delete(group);
+    this._mappingRequests.delete(group);
+    this._pendingSuggest.delete(group);
     this.instructionsArray.removeAt(index);
-  }
-
-  public addMapping(group: FormGroup): void {
-    this.mapActivitiesArray(group).push(this.createMappingGroup());
-  }
-
-  public removeMapping(group: FormGroup, index: number): void {
-    this.mapActivitiesArray(group).removeAt(index);
   }
 
   public addVariable(group: FormGroup): void {
@@ -270,13 +245,23 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
     this.setProcessVariablesArray(group).removeAt(index);
   }
 
+  /** The mapping child applied a suggestion, which its `emitEvent: false` writes kept from the form's own `valueChanges`. */
+  public onMappingsChange(): void {
+    this.emit();
+  }
+
+  /** Spend the suggestion once tried: the child is rebuilt on every expand, and a still-pending one would overwrite the author's rows. A failed try with no rows to overwrite stays pending, so the next expand retries it. */
+  public onSuggestSettled(group: FormGroup, applied: boolean): void {
+    if (applied || this.mapActivitiesArray(group).length > 0) this._pendingSuggest.delete(group);
+  }
+
   private createInstructionGroup(instruction?: ProcessMigrationInstruction): FormGroup {
     const group = this.fb.group({
       sourceProcessDefinitionKey: this.fb.control(instruction?.sourceProcessDefinitionKey ?? ''),
       targetProcessDefinitionKey: this.fb.control(instruction?.targetProcessDefinitionKey ?? ''),
       mapActivities: this.fb.array<FormGroup>(
         Object.entries(instruction?.mapActivities ?? {}).map(([source, target]) =>
-          this.createMappingGroup(source, target)
+          this.fb.group({source: this.fb.control(source), target: this.fb.control(target)})
         )
       ),
       setProcessVariables: this.fb.array<FormGroup>(
@@ -295,28 +280,18 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
         // Migrating a process to a new version of itself is the common case, so mirror the source onto an empty target — but only where the target side offers that key. In a building-block entry the two sides are different blueprints, and mirroring would leave the owner's process in the target picker.
         if (value && !targetControl.value && this.isTargetProcessKey(value)) {
           targetControl.setValue(value);
-        } else this.onProcessChanged(group);
+        } else this.requestMapping(group, true);
       })
     );
     this._subscriptions.add(
-      targetControl.valueChanges.subscribe(() => this.onProcessChanged(group))
+      targetControl.valueChanges.subscribe(() => this.requestMapping(group, true))
     );
-
-    // Debounced re-check on mapping edits only — suggestion and restore apply rows with emitEvent:false and validate explicitly.
+    // Only the author's edits reach here — suggestions write with `emitEvent: false` — and a pending suggestion must not overwrite them.
     this._subscriptions.add(
-      this.mapActivitiesArray(group)
-        .valueChanges.pipe(debounceTime(300))
-        .subscribe(() => this.validateInstruction(group))
+      group.get('mapActivities')!.valueChanges.subscribe(() => this._pendingSuggest.delete(group))
     );
 
     return group;
-  }
-
-  private createMappingGroup(source = '', target = ''): FormGroup {
-    return this.fb.group({
-      source: this.fb.control(source),
-      target: this.fb.control(target),
-    });
   }
 
   private createVariableGroup(patch?: ProcessVariablePatch): FormGroup {
@@ -347,54 +322,26 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
     return 'null';
   }
 
-  /** Reload the activity options and fetch a suggested mapping, applying both in the same tick so each select has its new options before its value is reapplied. */
-  private onProcessChanged(group: FormGroup): void {
-    const sourceId = this.definitionIdFor(group, 'source');
-    const targetId = this.definitionIdFor(group, 'target');
+  /** Hand the mapping child a fresh request when the ids changed. [suggest] separates the author picking another process, which replaces the rows, from a plan being restored, which keeps them. */
+  private requestMapping(group: FormGroup, suggest: boolean): void {
+    if (suggest) this._pendingSuggest.add(group);
 
-    if (!sourceId || !targetId) {
-      this._activities.set(group, {sourceNodes: [], targetNodes: [], loading: false});
-      this.cdr.markForCheck();
-      return;
-    }
+    const request: ActivityMappingRequest = {
+      sourceProcessDefinitionId: this.definitionIdFor(group, 'source') ?? null,
+      targetProcessDefinitionId: this.definitionIdFor(group, 'target') ?? null,
+    };
+    const current = this._mappingRequests.get(group);
+    // Same ids and nothing to suggest: keep the reference, or the child reloads for nothing.
+    if (!suggest && current && this.isSameRequest(current, request)) return;
 
-    this._activities.set(group, {sourceNodes: [], targetNodes: [], loading: true});
+    this._mappingRequests.set(group, request);
     this.cdr.markForCheck();
+  }
 
-    // A failed suggestion (or an unbound api) leaves the mappings untouched: null = "don't touch".
-    const mapping$ = this.api
-      ? this.api
-          .suggestActivityMapping(sourceId, targetId)
-          .pipe(catchError(() => of<Record<string, string> | null>(null)))
-      : of<Record<string, string> | null>(null);
-
-    this._subscriptions.add(
-      forkJoin({
-        flowNodes: this.processService
-          .getFlowNodes(sourceId, targetId)
-          .pipe(catchError(() => of(null))),
-        mapping: mapping$,
-      }).subscribe(({flowNodes, mapping}) => {
-        this._activities.set(group, {
-          sourceNodes: flowNodes ? this.toOptions(flowNodes.sourceFlowNodeMap) : [],
-          targetNodes: flowNodes ? this.toOptions(flowNodes.targetFlowNodeMap) : [],
-          loading: false,
-        });
-
-        if (mapping) {
-          const mappings = this.mapActivitiesArray(group);
-          mappings.clear({emitEvent: false});
-          Object.entries(mapping).forEach(([source, target]) =>
-            mappings.push(this.createMappingGroup(source, target), {emitEvent: false})
-          );
-          this.emit();
-        }
-
-        this.validateInstruction(group);
-        this.cdr.markForCheck();
-        // Options and rows are now set together, so a single re-sync reflects both selects.
-        this.reapplySelections();
-      })
+  private isSameRequest(a: ActivityMappingRequest, b: ActivityMappingRequest): boolean {
+    return (
+      a.sourceProcessDefinitionId === b.sourceProcessDefinitionId &&
+      a.targetProcessDefinitionId === b.targetProcessDefinitionId
     );
   }
 
@@ -405,39 +352,12 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
     return scoped?.[key] ?? this._keyToLatestId.get(key);
   }
 
-  private loadActivities(group: FormGroup): void {
-    const sourceId = this.definitionIdFor(group, 'source');
-    const targetId = this.definitionIdFor(group, 'target');
-
-    if (!sourceId || !targetId) {
-      this._activities.set(group, {sourceNodes: [], targetNodes: [], loading: false});
-      return;
-    }
-
-    this._activities.set(group, {sourceNodes: [], targetNodes: [], loading: true});
-    this.cdr.markForCheck();
-
-    this.processService.getFlowNodes(sourceId, targetId).subscribe({
-      next: flowNodes => {
-        // Straight from each side's own flow nodes — no augmenting with stored values, so the dropdowns only offer activities that belong to the selected process.
-        this._activities.set(group, {
-          sourceNodes: this.toOptions(flowNodes.sourceFlowNodeMap),
-          targetNodes: this.toOptions(flowNodes.targetFlowNodeMap),
-          loading: false,
-        });
-        this.validateInstruction(group);
-        this.cdr.markForCheck();
-        // The activity <option>s only exist now, so re-sync the mapping selects with their values.
-        this.reapplySelections();
-      },
-      error: () => {
-        this._activities.set(group, {sourceNodes: [], targetNodes: [], loading: false});
-        this.cdr.markForCheck();
-      },
-    });
+  /** Whether the target side offers [key]. A null scope is every deployed process, so anything the source offers is a target too. */
+  private isTargetProcessKey(key: string): boolean {
+    return !this.targetProcessDefinitions || key in this.targetProcessDefinitions;
   }
 
-  /** Carbon's `cds-select` only writes the native value in its setter, so a value set before its options exist is never reflected — re-write it once they have rendered. */
+  /** Carbon's `cds-select` only writes the native value in its setter, so a value set before its options exist is never reflected — re-write it once they have rendered. The mapping selects are the child's own to re-sync. */
   private reapplySelections(): void {
     setTimeout(() => {
       this.instructionsArray.controls.forEach(control => {
@@ -445,54 +365,9 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
         ['sourceProcessDefinitionKey', 'targetProcessDefinitionKey'].forEach(name =>
           group.get(name)?.setValue(group.get(name)?.value, {emitEvent: false})
         );
-        this.mapActivitiesArray(group).controls.forEach(row =>
-          ['source', 'target'].forEach(name =>
-            row.get(name)?.setValue(row.get(name)?.value, {emitEvent: false})
-          )
-        );
       });
       this.cdr.markForCheck();
     });
-  }
-
-  /** Ask the engine whether this instruction's mapping is a valid migration; clears the flags when it cannot validate. */
-  private validateInstruction(group: FormGroup): void {
-    const sourceId = this.definitionIdFor(group, 'source');
-    const targetId = this.definitionIdFor(group, 'target');
-    const mapping = this.mappingObject(group);
-
-    if (!this.api || !sourceId || !targetId || Object.keys(mapping).length === 0) {
-      this._invalidMappings.delete(group);
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.api
-      .validateActivityMapping(sourceId, targetId, mapping)
-      .pipe(catchError(() => of<Record<string, string[]>>({})))
-      .subscribe(invalid => {
-        this._invalidMappings.set(group, invalid);
-        this.cdr.markForCheck();
-      });
-  }
-
-  /** The `sourceActivityId -> targetActivityId` map for an instruction, skipping incomplete rows. */
-  private mappingObject(group: FormGroup): Record<string, string> {
-    const mapping: Record<string, string> = {};
-    this.mapActivitiesArray(group).controls.forEach(row => {
-      const source = row.get('source')?.value;
-      const target = row.get('target')?.value;
-      if (source && target) mapping[source] = target;
-    });
-    return mapping;
-  }
-
-  private toOptions(flowNodeMap: {[activityId: string]: string}): FlowNodeOption[] {
-    return Object.entries(flowNodeMap).map(([id, name]) => ({
-      id,
-      // Show name AND id so activities that share a title can be told apart.
-      label: name && name !== id ? `${name} (${id})` : id,
-    }));
   }
 
   private emit(): void {
@@ -542,13 +417,13 @@ export class MigrationProcessMigrationTabComponent implements OnInit, OnChanges,
 
     // The groups below are new instances, so anything still held here refers to a form that no longer exists.
     this._expanded.clear();
-    this._activities.clear();
-    this._invalidMappings.clear();
+    this._mappingRequests.clear();
+    this._pendingSuggest.clear();
     this.instructionsArray.clear({emitEvent: false});
     instructions.forEach(instruction => {
       const group = this.createInstructionGroup(instruction);
       this.instructionsArray.push(group, {emitEvent: false});
-      this.loadActivities(group);
+      this.requestMapping(group, false);
     });
     this._lastEmitted = JSON.stringify(this.serialize());
   }

@@ -42,11 +42,15 @@ interface MigrationExecutionStatus {
   casesMigrated: number;
 }
 
-interface MigrationPlanManagement {
+/** What the shared plan editor reads off a version's stored plans, whichever blueprint type lists them. Each type's own management row adds to this. */
+interface MigrationPlanSummary {
   migrationKey: string;
   title: string | null;
   source: string;
   target: string;
+}
+
+interface MigrationPlanManagement extends MigrationPlanSummary {
   components: string[];
   status: MigrationExecutionStatus;
 }
@@ -81,6 +85,28 @@ interface ProcessVariablePatch {
   targetType?: DataMigrationTargetType | null;
 }
 
+/** How the left ("from") side of a data or variable patch is filled: copy a field, set a literal, or null. */
+type PatchMode = 'path' | 'value' | 'null';
+
+/** One activity of a deployed process, as the activity-mapping pickers list it. */
+interface FlowNodeOption {
+  id: string;
+  label: string;
+}
+
+/** The activities both sides of one `processMigration` instruction offer, and whether they are still loading. */
+interface InstructionActivities {
+  sourceNodes: FlowNodeOption[];
+  targetNodes: FlowNodeOption[];
+  loading: boolean;
+}
+
+/** What one instruction's activity mapping resolves against. A new object asks for a reload. Whether that load suggests is the child's separate `suggest` input, so spending the suggestion does not reload. */
+interface ActivityMappingRequest {
+  sourceProcessDefinitionId: string | null;
+  targetProcessDefinitionId: string | null;
+}
+
 /** A single instruction of the `processMigration` block, translated 1:1 into an Operaton MigrationPlan. */
 interface ProcessMigrationInstruction {
   sourceProcessDefinitionKey: string;
@@ -93,9 +119,11 @@ interface ProcessMigrationInstruction {
   skipIoMappings: boolean;
 }
 
+type BuildingBlockEntryOwnerType = 'CASE' | 'BUILDING_BLOCK';
+
 /** The blueprint an add/removeBuildingBlock entry exchanges data and processes with — the parent building block for a nested one. */
 interface BuildingBlockEntryOwner {
-  type: 'CASE' | 'BUILDING_BLOCK';
+  type: BuildingBlockEntryOwnerType;
   key: string;
   versionTag: string;
 }
@@ -134,6 +162,13 @@ interface MigrationPlanSource {
   versionTag?: string;
 }
 
+/** The half of a plan's General tab every plan has, as the shared fields component emits it. */
+interface GeneralFieldsValue {
+  title: string;
+  key: string;
+  source: MigrationPlanSource;
+}
+
 /** The editable plan, matching the auto-deploy `*-migration.json` shape. The target is the version the plan is deployed under; triggers and conditions are case-only. */
 interface MigrationPlan {
   title?: string;
@@ -148,13 +183,45 @@ interface MigrationPlan {
 
 /** The `data-test-id`s the shared components stamp onto their controls. Passed in, because the two hosts use distinct literal values that e2e tests match on. */
 interface MigrationEditorTestIds {
+  generalTab: string;
+  dataMigrationTab: string;
+  processMigrationTab: string;
+  addBuildingBlockTab: string;
+  removeBuildingBlockTab: string;
+  jsonEditorTab: string;
+  saveButton: string;
+  cancelButton: string;
   addPatchButton: string;
+  deletePatchButton: string;
   addInstructionButton: string;
+  deleteInstructionButton: string;
+  toggleInstructionButton: string;
+  addMappingButton: string;
+  deleteMappingButton: string;
+  addVariableButton: string;
+  deleteVariableButton: string;
   addBuildingBlockButton: string;
   removeBuildingBlockButton: string;
+  deleteBuildingBlockEntryButton: string;
+  toggleBuildingBlockEntryButton: string;
   sourceKeySelect: string;
   sourceVersionSelect: string;
   targetReadout: string;
+}
+
+/** Every string the shared editor chrome translates. The two blueprint types word the same sentences differently, so each supplies its own namespace — see `migrationEditorKeys`. */
+interface MigrationEditorTranslationKeys {
+  saveFailedTitle: string;
+  saveFailedFallback: string;
+  dataMigrationDescription: string;
+  processMigrationDescription: string;
+  processMigrationActivityMappingHint: string;
+  addBuildingBlockDescription: string;
+  addBuildingBlockDataMigrationHint: string;
+  addBuildingBlockProcessMigrationHint: string;
+  removeBuildingBlockDescription: string;
+  removeBuildingBlockDataMigrationHint: string;
+  removeBuildingBlockProcessMigrationHint: string;
 }
 
 /** The migration API with the plan's blueprint already bound — the two hosts address different endpoints and identify a blueprint with differently-named params. */
@@ -190,8 +257,10 @@ interface LinkedBuildingBlock {
 }
 
 export {
+  ActivityMappingRequest,
   AddBuildingBlockInstruction,
   BuildingBlockEntryOwner,
+  BuildingBlockEntryOwnerType,
   BuildingBlockEntrySuggestion,
   BuildingBlockInstruction,
   BuildingBlockMigrationParams,
@@ -199,14 +268,20 @@ export {
   BuildingBlockMode,
   DataMigrationPatch,
   DataMigrationTargetType,
+  FlowNodeOption,
+  GeneralFieldsValue,
+  InstructionActivities,
   LinkedBuildingBlock,
   MigrationEditorApi,
   MigrationEditorTestIds,
+  MigrationEditorTranslationKeys,
   MigrationExecutionError,
   MigrationExecutionStatus,
   MigrationPlan,
   MigrationPlanManagement,
   MigrationPlanSource,
+  MigrationPlanSummary,
+  PatchMode,
   ProcessMigrationInstruction,
   ProcessVariablePatch,
   RemoveBuildingBlockInstruction,
