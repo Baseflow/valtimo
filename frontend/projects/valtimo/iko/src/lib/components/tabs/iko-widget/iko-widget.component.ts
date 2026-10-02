@@ -17,13 +17,20 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {TranslateModule} from '@ngx-translate/core';
 import {CarbonListModule, FitPageDirective, WidgetLayout} from '@valtimo/components';
-import {WidgetComponentMap, WidgetContainerComponent, WidgetType} from '@valtimo/layout';
+import {
+  BasicWidget,
+  WidgetComponentMap,
+  WidgetContainerComponent,
+  WidgetDataGroupService,
+  WidgetType,
+} from '@valtimo/layout';
 import {ButtonModule} from 'carbon-components-angular';
 import {NGXLogger} from 'ngx-logger';
 import {
   BehaviorSubject,
   catchError,
   combineLatest,
+  distinctUntilChanged,
   filter,
   map,
   Observable,
@@ -55,6 +62,7 @@ import {IkoWidgetMetrolineComponent} from '../../widget-metroline';
     TranslateModule,
     WidgetContainerComponent,
   ],
+  providers: [WidgetDataGroupService],
 })
 export class IkoWidgetComponent {
   public readonly ikoViewKey$ = this.ikoTabService.ikoViewKey$;
@@ -75,16 +83,35 @@ export class IkoWidgetComponent {
 
   private readonly _reloadWidgets$ = new BehaviorSubject<null>(null);
 
-  public widgets$ = combineLatest([this.ikoViewKey$, this.key$, this._reloadWidgets$]).pipe(
-    tap(() => this.widgetsError$.next(false)),
-    switchMap(([ikoViewKey, key]) =>
-      this.ikoApiService.getIkoWidget(ikoViewKey, key).pipe(
+  private readonly _context$: Observable<[string, string, string]> = combineLatest([
+    this.ikoViewKey$,
+    this.key$,
+    this.entryId$,
+  ]).pipe(
+    distinctUntilChanged(
+      ([viewA, tabA, idA], [viewB, tabB, idB]) => viewA === viewB && tabA === tabB && idA === idB
+    )
+  );
+
+  // Source and widget list are set before the container renders, so widgets find their group
+  public widgets$: Observable<BasicWidget[]> = combineLatest([
+    this._context$,
+    this._reloadWidgets$,
+  ]).pipe(
+    map(([context]) => context),
+    tap(([ikoViewKey, tabKey, entryId]) => {
+      this.widgetsError$.next(false);
+      this.setDataSource(ikoViewKey, tabKey, entryId);
+    }),
+    switchMap(([ikoViewKey, tabKey]) =>
+      this.ikoApiService.getIkoWidget(ikoViewKey, tabKey).pipe(
         catchError(() => {
           this.widgetsError$.next(true);
           return of([]);
         })
       )
-    )
+    ),
+    tap((widgets: BasicWidget[]) => this.widgetDataGroupService.setWidgets(widgets))
   );
 
   public widgetLayout$: Observable<WidgetLayout | undefined> = combineLatest([
@@ -97,11 +124,7 @@ export class IkoWidgetComponent {
         .pipe(map(tabs => tabs.find(tab => tab.key === key)?.widgetLayout))
     )
   );
-  public widgetParams$: Observable<IkoWidgetParams> = combineLatest([
-    this.ikoViewKey$,
-    this.key$,
-    this.entryId$,
-  ]).pipe(
+  public widgetParams$: Observable<IkoWidgetParams> = this._context$.pipe(
     map(([ikoViewKey, tabKey, entryId]) => ({
       ikoViewKey,
       entryId,
@@ -127,10 +150,20 @@ export class IkoWidgetComponent {
   constructor(
     private readonly ikoTabService: IkoTabService,
     private readonly ikoApiService: IkoApiService,
+    private readonly widgetDataGroupService: WidgetDataGroupService,
     private readonly logger: NGXLogger
   ) {}
 
   public onRetryWidgets(): void {
     this._reloadWidgets$.next(null);
+  }
+
+  private setDataSource(ikoViewKey: string, tabKey: string, entryId: string): void {
+    this.widgetDataGroupService.setSource({
+      fetchGroup: (group: string) =>
+        this.ikoApiService.getIkoWidgetDataGroup(ikoViewKey, tabKey, group, entryId),
+      fetchWidget: (widgetKey: string) =>
+        this.ikoApiService.getIkoWidgetData(ikoViewKey, tabKey, widgetKey, entryId),
+    });
   }
 }

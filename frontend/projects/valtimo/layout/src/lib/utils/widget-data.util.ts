@@ -14,9 +14,21 @@
  * limitations under the License.
  */
 
-import {catchError, Observable, of, OperatorFunction, tap} from 'rxjs';
+import {
+  catchError,
+  filter,
+  ignoreElements,
+  map,
+  merge,
+  Observable,
+  of,
+  OperatorFunction,
+  tap,
+} from 'rxjs';
+import type {WidgetDataEnvelope} from '../models';
 // Type-only: the library already has an import cycle through the widget constants, and pulling
-// the service in at runtime would drag this util into it.
+// the services in at runtime would drag this util into it.
+import type {WidgetDataGroupService} from '../services/widget-data-group.service';
 import type {WidgetLayoutService} from '../services/widget-layout.service';
 
 /**
@@ -45,4 +57,42 @@ function catchWidgetDataError<T>(
     );
 }
 
-export {catchWidgetDataError};
+/**
+ * Serves a widget its data from the group it belongs to, as data or as an error state on the
+ * widget block, so a widget that could not be filled is not shown as an empty widget.
+ *
+ * Unlike {@link catchWidgetDataError} the stream survives a failure, because the group serves
+ * every later result over it: this widget's retry, and the retry of a widget sharing its request.
+ *
+ * @param widgetDataGroupService the data group service of the tab
+ * @param widgetLayoutService the layout service of the widget container
+ * @param widgetKey the widget to serve
+ * @param getWidgetUuid resolves the widget uuid on emission — the uuid input is not set yet when
+ * the data stream is constructed
+ */
+function groupWidgetData<T>(
+  widgetDataGroupService: WidgetDataGroupService,
+  widgetLayoutService: WidgetLayoutService,
+  widgetKey: string,
+  getWidgetUuid: () => string
+): Observable<T | null> {
+  const retries$ = widgetLayoutService.widgetDataReload$.pipe(
+    filter(uuid => uuid === getWidgetUuid()),
+    tap(() => widgetDataGroupService.refresh(widgetKey)),
+    ignoreElements()
+  );
+
+  return merge(widgetDataGroupService.dataFor(widgetKey), retries$).pipe(
+    map((envelope: WidgetDataEnvelope) => {
+      if (envelope?.error) {
+        widgetLayoutService.setWidgetDataError(getWidgetUuid());
+        return null;
+      }
+
+      widgetLayoutService.clearWidgetDataError(getWidgetUuid());
+      return (envelope?.data ?? null) as T | null;
+    })
+  );
+}
+
+export {catchWidgetDataError, groupWidgetData};

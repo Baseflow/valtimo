@@ -25,6 +25,12 @@
     * [Actions](configuration-guides/cases/actions.md)
     * [Decision tables](configuration-guides/cases/decision-tables.md)
     * [Document](configuration-guides/cases/document.md)
+    * [Migration](configuration-guides/cases/migration/README.md)
+        * [Conditions](configuration-guides/cases/migration/conditions.md)
+        * [Source and target](configuration-guides/cases/migration/source-and-target.md)
+        * [Process migration](configuration-guides/cases/migration/process-migration.md)
+        * [Building blocks](configuration-guides/cases/migration/building-blocks.md)
+        * [Running a plan](configuration-guides/cases/migration/running-a-plan.md)
     * [Forms](configuration-guides/cases/forms.md)
         * [E-mail preview component](configuration-guides/cases/forms/email-preview-component.md)
     * [Form flows](configuration-guides/cases/form-flows.md)
@@ -47,6 +53,7 @@
 * [🧱 Building blocks](configuration-guides/building-blocks/README.md)
     * [General](configuration-guides/building-blocks/general.md)
     * [Document](configuration-guides/building-blocks/document.md)
+    * [Migration](configuration-guides/building-blocks/migration.md)
     * [Processes](configuration-guides/building-blocks/processes.md)
     * [Forms](configuration-guides/building-blocks/forms.md)
     * [Form flows](configuration-guides/building-blocks/form-flows.md)
@@ -63,7 +70,8 @@
         * [Plugin logs](configuration-guides/plugins/external-plugins/plugin-logs.md)
         * [In cases and processes](configuration-guides/plugins/external-plugins/external-plugins-in-cases-and-processes.md)
         * [Troubleshooting](configuration-guides/plugins/external-plugins/troubleshooting.md)
-* 📊 Dashboard
+* [📊 Dashboard](configuration-guides/dashboard/README.md)
+    * [Widgets](configuration-guides/dashboard/widgets.md)
 * [🔏 Access control](configuration-guides/access-control/README.md)
     * [Configurable elements](configuration-guides/access-control/configurable-elements.md)
     * [Roles](configuration-guides/access-control/roles.md)
@@ -74,12 +82,18 @@
 
 ## Release notes
 * [13.x.x](release-notes/13.x.x/)
+  * [13.49.0](release-notes/13.x.x/13.49.0/README.md)
+  * [13.47.1](release-notes/13.x.x/13.47.1/README.md)
   * [13.47.0](release-notes/13.x.x/13.47.0/README.md)
   * [13.46.0](release-notes/13.x.x/13.46.0/README.md)
   * [13.45.1](release-notes/13.x.x/13.45.1/README.md)
   * [13.45.0](release-notes/13.x.x/13.45.0/README.md)
   * [13.44.0](release-notes/13.x.x/13.44.0/README.md)
   * [13.43.0](release-notes/13.x.x/13.43.0/README.md)
+
+## Advanced
+
+* [Dashboard widget data sources](advanced/dashboard-widget-data-sources.md)
 
 ## Support
 

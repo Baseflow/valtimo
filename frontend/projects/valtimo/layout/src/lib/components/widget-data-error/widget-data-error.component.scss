@@ -46,6 +46,17 @@ cds-actionable-notification {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  // Carbon keeps the button beside the message at any width, which in a one-column widget leaves
+  // the message a few characters wide. Below the min-width the button wraps under it instead.
+  flex-wrap: wrap;
+
+  ::ng-deep .cds--actionable-notification__details {
+    min-width: 12rem;
+  }
+
+  ::ng-deep .cds--actionable-notification__action-button {
+    margin-right: auto;
+  }
 }
 
 .widget-data-error__title {

@@ -13,11 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {BehaviorSubject, firstValueFrom, of, switchMap, throwError} from 'rxjs';
-// Type-only: importing the service for real drags this spec into the library's import cycle
+import {
+  BehaviorSubject,
+  firstValueFrom,
+  of,
+  ReplaySubject,
+  Subject,
+  switchMap,
+  throwError,
+} from 'rxjs';
+import type {WidgetDataEnvelope} from '../models';
+// Type-only: importing the services for real drags this spec into the library's import cycle
 // through the widget constants.
+import type {WidgetDataGroupService} from '../services/widget-data-group.service';
 import type {WidgetLayoutService} from '../services/widget-layout.service';
-import {catchWidgetDataError} from './widget-data.util';
+import {catchWidgetDataError, groupWidgetData} from './widget-data.util';
 
 describe('catchWidgetDataError', () => {
   const UUID = 'widget-uuid';
@@ -92,5 +102,99 @@ describe('catchWidgetDataError', () => {
     await firstValueFrom(request$);
 
     expect(calls).toEqual([`error:${UUID}`]);
+  });
+});
+
+describe('groupWidgetData', () => {
+  const UUID = 'widget-uuid';
+  const WIDGET_KEY = 'personalia';
+  const FAILED: WidgetDataEnvelope = {error: {code: 'UPSTREAM_UNAVAILABLE'}};
+
+  let calls: string[];
+  let refreshed: string[];
+  let envelopes$: ReplaySubject<WidgetDataEnvelope>;
+  let reload$: Subject<string>;
+  let layoutService: WidgetLayoutService;
+  let dataGroupService: WidgetDataGroupService;
+
+  beforeEach(() => {
+    calls = [];
+    refreshed = [];
+    envelopes$ = new ReplaySubject<WidgetDataEnvelope>(1);
+    reload$ = new Subject<string>();
+
+    layoutService = {
+      widgetDataReload$: reload$.asObservable(),
+      setWidgetDataError: (uuid: string) => calls.push(`error:${uuid}`),
+      clearWidgetDataError: (uuid: string) => calls.push(`clear:${uuid}`),
+    } as unknown as WidgetLayoutService;
+
+    dataGroupService = {
+      dataFor: () => envelopes$.asObservable(),
+      refresh: (widgetKey: string) => refreshed.push(widgetKey),
+    } as unknown as WidgetDataGroupService;
+  });
+
+  const data$ = () => groupWidgetData(dataGroupService, layoutService, WIDGET_KEY, () => UUID);
+
+  it('should unwrap the data of a widget the group filled', () => {
+    const emitted: unknown[] = [];
+    data$().subscribe(value => emitted.push(value));
+
+    envelopes$.next({data: {bsn: '000000000'}});
+
+    expect(emitted).toEqual([{bsn: '000000000'}]);
+    expect(calls).toEqual([`clear:${UUID}`]);
+  });
+
+  it('should flag the widget and emit null for a failure envelope', () => {
+    const emitted: unknown[] = [];
+    data$().subscribe(value => emitted.push(value));
+
+    envelopes$.next(FAILED);
+
+    expect(emitted).toEqual([null]);
+    expect(calls).toEqual([`error:${UUID}`]);
+  });
+
+  it('should keep empty data apart from a failure', () => {
+    const emitted: unknown[] = [];
+    data$().subscribe(value => emitted.push(value));
+
+    envelopes$.next({data: []});
+
+    expect(emitted).toEqual([[]]);
+    expect(calls).toEqual([`clear:${UUID}`]);
+  });
+
+  it('should re-request only this widget when it is retried', () => {
+    data$().subscribe();
+
+    reload$.next('another-widget-uuid');
+    reload$.next(UUID);
+
+    expect(refreshed).toEqual([WIDGET_KEY]);
+  });
+
+  it('should stay subscribed after a failure, so a later result still lands', () => {
+    const emitted: unknown[] = [];
+    data$().subscribe(value => emitted.push(value));
+
+    envelopes$.next(FAILED);
+    reload$.next(UUID);
+    envelopes$.next({data: {bsn: '000000000'}});
+
+    expect(emitted).toEqual([null, {bsn: '000000000'}]);
+    expect(calls).toEqual([`error:${UUID}`, `clear:${UUID}`]);
+  });
+
+  it('should clear the error on a result no retry asked for', () => {
+    data$().subscribe();
+
+    envelopes$.next(FAILED);
+    envelopes$.next({data: {bsn: '000000000'}});
+
+    expect(refreshed).toEqual([]);
+    expect(calls).toEqual([`error:${UUID}`, `clear:${UUID}`]);
   });
 });
