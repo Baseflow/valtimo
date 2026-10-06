@@ -78,12 +78,12 @@ import {
   DocumentenApiColumnService,
   DocumentenApiDocumentService,
   DocumentenApiPreviewService,
+  DocumentenApiWopiService,
   DocumentenApiVersionService,
 } from '../../services';
 import {DocumentenApiFilterComponent} from '../documenten-api-filter/documenten-api-filter.component';
 import {DocumentenApiMetadataModalComponent} from '../documenten-api-metadata-modal/documenten-api-metadata-modal.component';
 import {DocumentenApiPreviewModalComponent} from '../documenten-api-preview-modal/documenten-api-preview-modal.component';
-import {DocumentenApiWopiService} from '../../services/documenten-api-wopi.service';
 
 @Component({
   selector: 'valtimo-case-detail-tab-documenten-api-documents',
