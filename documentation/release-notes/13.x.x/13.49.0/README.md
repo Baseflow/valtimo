@@ -25,3 +25,4 @@ New enhancement explanation.
 | Area | Fix |
 |------|-----|
 | IKO | A widget or search result list that could not retrieve its data now says so and offers a retry, instead of looking the same as one that has no data to show |
+| Form flows | A form flow that has been used can now be deleted from a draft case definition or building block, as can the draft case definition itself; its form flow instances are deleted along with it |
