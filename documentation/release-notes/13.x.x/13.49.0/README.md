@@ -25,3 +25,4 @@ New enhancement explanation.
 | Area | Fix |
 |------|-----|
 | Form flows | A form flow that has been used can now be deleted from a draft case definition or building block, as can the draft case definition itself; its form flow instances are deleted along with it |
+| Case list | The case list now loads even when a ZGW API fails to return data for a case, for example when the zaak is confidential and GZAC is not authorized to view it; the affected columns stay empty and all other data is still shown |
