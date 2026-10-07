@@ -226,8 +226,6 @@ services:
             - SENDFILE_BACKEND=django_sendfile.backends.simple
             - NOTIFICATIONS_DISABLED=true
             - DISABLE_2FA=True
-        extra_hosts:
-            - "cg-dmf.localhost:host-gateway"
         ports:
             - "8001:8000"
         depends_on:
