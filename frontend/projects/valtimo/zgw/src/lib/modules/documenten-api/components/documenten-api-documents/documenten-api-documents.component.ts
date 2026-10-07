@@ -644,7 +644,13 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
         pluginConfigurationId,
         this.documentenApiPreviewService
           .canGeneratePreview(pluginConfigurationId)
-          .pipe(shareReplay(1))
+          .pipe(
+            catchError(() => {
+              this.canGeneratePreviewCache.delete(pluginConfigurationId);
+              return of(false);
+            }),
+            shareReplay(1)
+          )
       );
     }
 
