@@ -53,6 +53,7 @@ import {TaskWithProcessLink} from '@valtimo/process-link';
 import {UserProviderService} from '@valtimo/security';
 import {SseService} from '@valtimo/sse';
 import {IntermediateSubmission, TaskUpdateSseEvent} from '@valtimo/task';
+import {SplitGutterInteractionEvent} from 'angular-split';
 import {IconService} from 'carbon-components-angular';
 import {KeycloakService} from 'keycloak-angular';
 import {NGXLogger} from 'ngx-logger';
@@ -61,6 +62,7 @@ import {
   combineLatest,
   debounceTime,
   filter,
+  forkJoin,
   map,
   merge,
   Observable,
@@ -77,6 +79,7 @@ import {
   CASE_DETAIL_DEFAULT_DISPLAY_SIZE,
   CASE_DETAIL_DEFAULT_DISPLAY_TYPE,
   CASE_DETAIL_GUTTER_SIZE,
+  CASE_DETAIL_PANEL_TEST_IDS,
   CASE_DETAIL_START_PROCESS_DROPDOWN_WIDTH,
 } from '../../constants';
 import {
@@ -331,6 +334,8 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
 
   public readonly CASE_DETAIL_GUTTER_SIZE = CASE_DETAIL_GUTTER_SIZE;
 
+  protected readonly testIds = CASE_DETAIL_PANEL_TEST_IDS;
+
   public readonly caseDetailLayout$ = this.caseDetailLayoutService.caseDetailLayout$;
 
   public readonly openTaskAndProcessLinkInModal$ = new Subject<TaskWithProcessLink>();
@@ -477,15 +482,12 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
   }
 
   public startItem(item: StartableItem): void {
-    this.showTaskList$.pipe(take(1)).subscribe(showTaskList => {
-      this.supportingProcessStart.openModalForStartableItem(
-        item,
-        this.documentId,
-        this.caseDefinitionKey,
-        this.caseDefinitionVersionTag,
-        showTaskList
-      );
-    });
+    this.supportingProcessStart.openModalForStartableItem(
+      item,
+      this.documentId,
+      this.caseDefinitionKey,
+      this.caseDefinitionVersionTag
+    );
   }
 
   public onStartFormPanelClose(): void {
@@ -633,7 +635,7 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
     // }
 
     if (!tab.showTasks) this.openTaskAndProcessLinkInModal$.next(null);
-    this.supportingProcessStart.closePanel();
+    this.supportingProcessStart.closeModalOnTabSwitch();
     this.tabLoader.load(tab);
     this.setDocumentStyle();
   }
@@ -652,6 +654,14 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
     this.caseDetailLayoutService.setMainContentHeaderHeight(height);
   }
 
+  public onSplitDragEnd(event: SplitGutterInteractionEvent): void {
+    const taskPanelWidth = event.sizes[1];
+
+    if (typeof taskPanelWidth === 'number') {
+      this.caseDetailLayoutService.saveTaskPanelWidth(taskPanelWidth);
+    }
+  }
+
   protected onConfirmRedirect(): void {
     if (!this.tabLoader || !this._pendingTab) return;
     this._activeChange = false;
@@ -666,9 +676,12 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
   }
 
   private initBreadcrumb(): void {
-    this.documentService.getDocumentDefinition(this.caseDefinitionKey).subscribe(definition => {
-      this.documentDefinitionTitle = definition.schema.title;
-      this.caseDefinitionVersionTag = definition.id.blueprintId.blueprintVersionTag;
+    forkJoin({
+      documentDefinition: this.documentService.getDocumentDefinition(this.caseDefinitionKey),
+      activeCaseDefinition: this.documentService.getActiveCaseDefinition(this.caseDefinitionKey),
+    }).subscribe(({documentDefinition, activeCaseDefinition}) => {
+      this.documentDefinitionTitle = activeCaseDefinition?.name || documentDefinition.schema.title;
+      this.caseDefinitionVersionTag = documentDefinition.id.blueprintId.blueprintVersionTag;
       this.setBreadcrumb();
     });
   }
@@ -786,7 +799,7 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
       ...(isAdmin && {
         actions: [
           {
-            text: this.translateService.instant('dossier.configure'),
+            text: this.translateService.instant('case.configure'),
             click: () => this.router.navigate(['/process-links']),
           },
         ],

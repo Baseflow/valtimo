@@ -30,6 +30,7 @@ import com.ritense.formflow.repository.FormFlowAdditionalPropertiesSearchReposit
 import com.ritense.formflow.repository.FormFlowDefinitionRepository
 import com.ritense.formflow.repository.FormFlowInstanceRepository
 import com.ritense.logging.withLoggingContext
+import com.ritense.valtimo.contract.BlueprintId
 import com.ritense.valtimo.contract.blueprint.BlueprintType
 import com.ritense.valtimo.contract.buildingblock.BuildingBlockDefinitionChecker
 import com.ritense.valtimo.contract.buildingblock.BuildingBlockDefinitionId
@@ -104,6 +105,10 @@ class FormFlowService(
         return formFlowDefinitionRepository.findByIdOrNull(FormFlowDefinitionId.existingId(formFlowDefinitionKey, buildingBlockDefinitionId))
     }
 
+    fun findDefinitionOrNull(formFlowDefinitionKey: String, blueprintId: BlueprintId): FormFlowDefinition? {
+        return formFlowDefinitionRepository.findByIdOrNull(FormFlowDefinitionId.existingId(formFlowDefinitionKey, blueprintId))
+    }
+
     fun findDefinitionByKey(formFlowDefinitionKey: String): FormFlowDefinition? {
         val definitions = formFlowDefinitionRepository.findAllByKey(formFlowDefinitionKey)
         return when {
@@ -162,12 +167,12 @@ class FormFlowService(
 
     fun deleteByKeyAndsCaseDefinition(definitionKey: String, caseDefinitionId: CaseDefinitionId) {
         caseDefinitionChecker.assertCanUpdateCaseDefinition(caseDefinitionId)
-        formFlowDefinitionRepository.deleteById(FormFlowDefinitionId.existingId(definitionKey, caseDefinitionId))
+        deleteDefinition(FormFlowDefinitionId.existingId(definitionKey, caseDefinitionId))
     }
 
     fun deleteByKeyAndBuildingBlockDefinition(definitionKey: String, buildingBlockDefinitionId: BuildingBlockDefinitionId) {
         buildingBlockDefinitionChecker.assertCanUpdateBuildingBlockDefinition(buildingBlockDefinitionId)
-        formFlowDefinitionRepository.deleteById(FormFlowDefinitionId.existingId(definitionKey, buildingBlockDefinitionId))
+        deleteDefinition(FormFlowDefinitionId.existingId(definitionKey, buildingBlockDefinitionId))
     }
 
     fun deleteAllByCaseDefinitionId(caseDefinitionId: CaseDefinitionId) {
@@ -175,7 +180,7 @@ class FormFlowService(
         val definitions = formFlowDefinitionRepository.findAllByBlueprintId(
             BlueprintType.CASE, caseDefinitionId.key, caseDefinitionId.versionTag
         )
-        formFlowDefinitionRepository.deleteAll(definitions)
+        deleteDefinitions(definitions)
     }
 
     fun deleteAllByBuildingBlockDefinitionId(buildingBlockDefinitionId: BuildingBlockDefinitionId) {
@@ -183,6 +188,19 @@ class FormFlowService(
         val definitions = formFlowDefinitionRepository.findAllByBlueprintId(
             BlueprintType.BUILDING_BLOCK, buildingBlockDefinitionId.key, buildingBlockDefinitionId.versionTag
         )
+        deleteDefinitions(definitions)
+    }
+
+    private fun deleteDefinition(formFlowDefinitionId: FormFlowDefinitionId) {
+        formFlowDefinitionRepository.findByIdOrNull(formFlowDefinitionId)?.let { deleteDefinitions(listOf(it)) }
+    }
+
+    // Bulk deletes don't cascade: children first
+    private fun deleteDefinitions(definitions: List<FormFlowDefinition>) {
+        definitions.forEach { definition ->
+            formFlowInstanceRepository.deleteStepInstancesByFormFlowDefinition(definition)
+            formFlowInstanceRepository.deleteInstancesByFormFlowDefinition(definition)
+        }
         formFlowDefinitionRepository.deleteAll(definitions)
     }
 

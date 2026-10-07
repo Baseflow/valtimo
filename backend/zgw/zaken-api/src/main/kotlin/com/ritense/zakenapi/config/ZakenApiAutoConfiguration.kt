@@ -204,11 +204,13 @@ class ZakenApiAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(ZaakValueResolverFactory::class)
     fun zaakValueResolverFactory(
-        zaakDocumentService: ZaakDocumentService,
-        processDocumentService: ProcessDocumentService
+        processDocumentService: ProcessDocumentService,
+        zaakUrlProvider: ZaakUrlProvider,
+        pluginService: PluginService,
     ) = ZaakValueResolverFactory(
-        zaakDocumentService,
-        processDocumentService
+        processDocumentService,
+        zaakUrlProvider,
+        pluginService
     )
 
     @Bean
@@ -304,7 +306,7 @@ class ZakenApiAutoConfiguration {
     ) = DocumentMetadataAvailableEventListener(resourceStorageMetadataRepository)
 
     @Bean
-    @ProcessBean
+    @ProcessBean(description = "Publishes ZGW file upload events")
     @ConditionalOnMissingBean(UploadProcessDelegate::class)
     fun uploadProcessDelegate(
         applicationEventPublisher: ApplicationEventPublisher
