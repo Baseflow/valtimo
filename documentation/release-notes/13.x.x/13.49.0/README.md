@@ -29,5 +29,6 @@ New enhancement explanation.
 | Form flows | A form flow that has been used can now be deleted from a draft case definition or building block, as can the draft case definition itself; its form flow instances are deleted along with it |
 | Cases | A form opened in the side panel of a case stays open and keeps its contents when switching between the case's tabs |
 | Cases | A start form configured to open in the side panel now opens there on every case tab, including tabs without a task list, instead of opening in a modal |
-| Platform | Memory no longer grows when browsers disconnect from live updates (SSE). Disconnected subscriptions are dropped after 2 minutes instead of 3 hours, their event backlog is capped, connected clients get a heartbeat, and events are sent from a background thread so a slow or vanished browser can no longer stall case or task processing. The new `valtimo.sse.*` settings control the connection timeout, heartbeat interval, grace period and backlog size |
-| Platform | A browser that disconnects mid-request (broken pipe) is no longer logged as an error |
+| Platform | The application stays stable when users reload or close their browser, instead of slowly running out of memory |
+| Platform | A user with a slow or lost connection no longer delays the processing of cases and tasks for other users |
+| Platform | A user closing their browser while a page is loading no longer shows up as an error in the application logs |
