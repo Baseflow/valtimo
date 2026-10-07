@@ -1,5 +1,5 @@
-/*!
- * Copyright 2015-2025 Ritense BV, the Netherlands.
+/*
+ * Copyright 2015-2026 Ritense BV, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-:host ::ng-deep.widgets-container {
-  overflow: hidden;
-}
-
-.iko-widget-container {
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  &--hidden {
-    display: none;
-  }
-}
+export const CASE_DETAIL_PANEL_TEST_IDS = {
+  startFormPanel: 'caseStartFormPanel',
+  startFormPanelTitle: 'caseStartFormPanelTitle',
+  startFormPanelCloseButton: 'caseStartFormPanelCloseButton',
+} as const;
