@@ -284,10 +284,6 @@ class DocumentenApiPlugin(
         return client.getInformatieObject(authenticationPluginConfiguration, url, caseDocumentId,objectId)
     }
 
-    fun requireModifyAccess(objectId: String, caseDocumentId: UUID?): DocumentInformatieObject {
-        return client.requireModifyPermission(authenticationPluginConfiguration, url, objectId, caseDocumentId)
-    }
-
     fun getInformatieObject(objectUrl: URI, caseDocumentId: UUID?): DocumentInformatieObject {
         return client.getInformatieObject(authenticationPluginConfiguration, caseDocumentId, objectUrl)
     }

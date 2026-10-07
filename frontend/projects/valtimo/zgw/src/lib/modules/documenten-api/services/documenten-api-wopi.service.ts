@@ -16,7 +16,7 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {BaseApiService, ConfigService, InterceptorSkipHeader} from '@valtimo/shared';
-import {catchError, Observable, of} from 'rxjs';
+import {Observable} from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -30,14 +30,12 @@ export class DocumentenApiWopiService extends BaseApiService {
   }
 
   public checkWopiSupport(documentenApiPluginConfigurationId: string): Observable<boolean> {
-    return this.httpClient
-      .get<boolean>(
-        this.getApiUrl(
-          `v1/documenten-api-wopi/configuration-exists/${documentenApiPluginConfigurationId}`
-        ),
-        {headers: InterceptorSkipHeader}
-      )
-      .pipe(catchError(() => of(false)));
+    return this.httpClient.get<boolean>(
+      this.getApiUrl(
+        `v1/documenten-api-wopi/configuration-exists/${documentenApiPluginConfigurationId}`
+      ),
+      {headers: InterceptorSkipHeader}
+    );
   }
 
   public getWopiHostPage(

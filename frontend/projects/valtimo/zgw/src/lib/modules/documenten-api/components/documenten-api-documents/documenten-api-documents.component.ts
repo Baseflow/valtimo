@@ -539,6 +539,11 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     // WOPI host's HTML ourselves and rendering it via a blob: URL) keeps that markup on the WOPI host's own
     // origin instead of ours.
     const wopiTab = window.open('', '_blank');
+    if (wopiTab) {
+      // Prevent the WOPI host page (which may be on an external origin) from using
+      // window.opener to navigate this application tab.
+      wopiTab.opener = null;
+    }
 
     this.documentId$.pipe(take(1)).subscribe(documentId => {
       this.documentenApiWopiService
@@ -650,7 +655,14 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     if (!this.hasWopiSupportCache.has(pluginConfigurationId)) {
       this.hasWopiSupportCache.set(
         pluginConfigurationId,
-        this.documentenApiWopiService.checkWopiSupport(pluginConfigurationId).pipe(shareReplay(1))
+        this.documentenApiWopiService.checkWopiSupport(pluginConfigurationId).pipe(
+          catchError(() => {
+            // Don't cache failures as "unsupported" - evict so the next call retries the request.
+            this.hasWopiSupportCache.delete(pluginConfigurationId);
+            return of(false);
+          }),
+          shareReplay(1)
+        )
       );
     }
 

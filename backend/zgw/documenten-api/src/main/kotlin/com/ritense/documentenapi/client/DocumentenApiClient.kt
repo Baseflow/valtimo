@@ -234,12 +234,12 @@ class DocumentenApiClient(
         requireNotNull(objectFilterUrl) { "Either zaakUrl or objectUrl is required" }
 
         if (!authorizationService.hasPermission(
-            EntityAuthorizationRequest(
-                ZgwDocument::class.java,
-                ZgwDocumentActionProvider.VIEW_LIST,
-                ZgwDocument(caseDocumentId = caseDocumentId)
-            )
-        )) {
+                EntityAuthorizationRequest(
+                    ZgwDocument::class.java,
+                    ZgwDocumentActionProvider.VIEW_LIST,
+                    ZgwDocument(caseDocumentId = caseDocumentId)
+                )
+            )) {
             return org.springframework.data.domain.Page.empty(pageable)
         }
         val pageToRequest = ((pageable.pageSize * pageable.pageNumber) / ITEMS_PER_PAGE) + 1
@@ -272,9 +272,9 @@ class DocumentenApiClient(
         val results = result.results.filter { documentInformatieObject ->
             result.results.none {
                 it.url == documentInformatieObject.url
-                    && it.versie != null
-                    && documentInformatieObject.versie != null
-                    && it.versie > documentInformatieObject.versie
+                        && it.versie != null
+                        && documentInformatieObject.versie != null
+                        && it.versie > documentInformatieObject.versie
             }
         }
 
@@ -420,16 +420,10 @@ class DocumentenApiClient(
         outboxService.send { DocumentDeleted(url.toASCIIString()) }
     }
 
-    fun requireModifyPermission(
-        authentication: DocumentenApiAuthentication,
-        baseUrl: URI,
-        objectId: String,
-        caseDocumentId: UUID? = null
-    ): DocumentInformatieObject = requireModifyPermission(authentication, toObjectUrl(baseUrl, objectId), caseDocumentId)
-
-    fun requireModifyPermission(
+    fun modifyInformatieObject(
         authentication: DocumentenApiAuthentication,
         documentUrl: URI,
+        patchDocumentRequest: PatchDocumentRequest,
         caseDocumentId: UUID? = null
     ): DocumentInformatieObject {
         val original = restClient(authentication)
@@ -451,17 +445,6 @@ class DocumentenApiClient(
                 )
             )
         )
-
-        return original
-    }
-
-    fun modifyInformatieObject(
-        authentication: DocumentenApiAuthentication,
-        documentUrl: URI,
-        patchDocumentRequest: PatchDocumentRequest,
-        caseDocumentId: UUID? = null
-    ): DocumentInformatieObject {
-        requireModifyPermission(authentication, documentUrl, caseDocumentId)
 
         val result = restClient(authentication)
             .patch()
