@@ -85,6 +85,8 @@ export class CaseDetailsTaskDetailComponent implements OnDestroy {
     });
   }
   @Output() public readonly closeEvent = new EventEmitter();
+  /** The back button; the host decides whether to close, e.g. after confirming unsaved edits. */
+  @Output() public readonly closeRequest = new EventEmitter<void>();
   @Output() public readonly assignmentOfTaskChanged = new EventEmitter();
   @Output() public readonly dueDateChanged = new EventEmitter();
   @Output() public readonly activeChange = new EventEmitter<boolean>();
@@ -160,8 +162,7 @@ export class CaseDetailsTaskDetailComponent implements OnDestroy {
   }
 
   public onClose(): void {
-    this.closeEvent.emit();
-    this.onActiveChangeEvent(false);
+    this.closeRequest.emit();
   }
 
   public onCurrentIntermediateSaveEvent(value: IntermediateSubmission | null): void {

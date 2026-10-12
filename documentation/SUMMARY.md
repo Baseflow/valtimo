@@ -12,6 +12,7 @@
 * [What is a process?](fundamentals/process.md)
 * [What is a form?](fundamentals/form.md)
 * [What is an external plugin?](fundamentals/external-plugins.md)
+* [What is the side panel?](fundamentals/side-panel.md)
 * [Users, roles and permissions](fundamentals/roles-permissions.md)
 
 ## Tutorials

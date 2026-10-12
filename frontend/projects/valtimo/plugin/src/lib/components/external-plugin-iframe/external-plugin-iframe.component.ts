@@ -257,8 +257,7 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
               label: this._caseLabel(caseDefinitionKey, documentId),
             }
           : undefined,
-      // Plugin panels are not tied to the page that offered them.
-      persistent: true,
+      pinned: offer.pinned,
       component: ExternalPluginSidePanelComponent,
       inputs: {
         bundleKey: offer.bundleKey ?? null,
@@ -314,11 +313,12 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
 
   private _parsePanelOffer(payload: unknown): ExternalPluginPanelOffer | null {
     if (!payload || typeof payload !== 'object') return null;
-    const {bundleKey, key, title, subtitle, context} = payload as Record<string, unknown>;
+    const {bundleKey, key, title, subtitle, pinned, context} = payload as Record<string, unknown>;
 
     if (!this._isPanelText(key) || !this._isPanelText(title)) return null;
     if (bundleKey !== undefined && !this._isPanelText(bundleKey)) return null;
     if (subtitle !== undefined && !this._isPanelText(subtitle)) return null;
+    if (pinned !== undefined && typeof pinned !== 'boolean') return null;
     if (
       context !== undefined &&
       (!context || typeof context !== 'object' || Array.isArray(context))
@@ -331,6 +331,7 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
       key,
       title,
       subtitle: subtitle as string | undefined,
+      pinned: pinned as boolean | undefined,
       context: context as Record<string, unknown> | undefined,
     };
   }

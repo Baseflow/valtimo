@@ -45,6 +45,7 @@
       [taskAndProcessLink]="$taskAndProcessLink()"
       (activeChange)="onTaskFormActiveChange($event)"
       (closeEvent)="onTaskClose()"
+      (closeRequest)="onTaskCloseRequest()"
       (dueDateChanged)="onDueDateChanged()"
       (formSubmit)="onTaskFormSubmit()"
     ></valtimo-case-detail-task-detail>

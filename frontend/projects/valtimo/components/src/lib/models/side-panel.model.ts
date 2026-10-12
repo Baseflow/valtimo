@@ -41,8 +41,11 @@ interface SidePanelOffer {
   minWidth?: number;
   /** Shown in the header as a link, and marked when the user is on another page. */
   origin?: SidePanelOrigin;
-  /** Stays open when navigating to other pages; marked with a pin. */
-  persistent?: boolean;
+  /**
+   * Marks the content with a pin, telling the user it stays open on other pages. A marker only:
+   * the provider keeps that promise and decides when to withdraw.
+   */
+  pinned?: boolean;
   /**
    * The content's own width, used instead of the panel's stored width. The provider persists it:
    * the handle's `resized$` reports each resize.

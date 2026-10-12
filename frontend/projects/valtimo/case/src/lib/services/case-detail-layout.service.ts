@@ -83,6 +83,7 @@ export class CaseDetailLayoutService implements OnDestroy {
   private _startFormPendingChanges = false;
   private _taskFormPendingChanges = false;
   private readonly _startFormPanelCloseRequested$ = new Subject<void>();
+  private readonly _taskCloseRequested$ = new Subject<void>();
   private readonly _taskFormSubmitted$ = new Subject<void>();
   private readonly _taskSelected$ = new Subject<TaskWithProcessLink>();
 
@@ -105,6 +106,10 @@ export class CaseDetailLayoutService implements OnDestroy {
 
   public get startFormPanelCloseRequested$(): Observable<void> {
     return this._startFormPanelCloseRequested$.asObservable();
+  }
+
+  public get taskCloseRequested$(): Observable<void> {
+    return this._taskCloseRequested$.asObservable();
   }
 
   public get taskFormSubmitted$(): Observable<void> {
@@ -264,6 +269,10 @@ export class CaseDetailLayoutService implements OnDestroy {
 
   public requestStartFormPanelClose(): void {
     this._startFormPanelCloseRequested$.next();
+  }
+
+  public requestTaskClose(): void {
+    this._taskCloseRequested$.next();
   }
 
   public notifyTaskFormSubmitted(): void {

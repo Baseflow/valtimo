@@ -30,6 +30,7 @@ interface ExternalPluginPanelOffer {
   key: string;
   title: string;
   subtitle?: string;
+  pinned?: boolean;
   context?: Record<string, unknown>;
 }
 

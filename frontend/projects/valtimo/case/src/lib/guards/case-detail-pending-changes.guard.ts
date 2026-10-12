@@ -14,11 +14,26 @@
  * limitations under the License.
  */
 
-import {CanDeactivateFn} from '@angular/router';
+import {ActivatedRouteSnapshot, CanDeactivateFn, RouterStateSnapshot} from '@angular/router';
 import type {CaseDetailComponent} from '../components/case-detail/case-detail.component';
 
 /** Asks before leaving a case while a task or start form has unsaved edits. */
-const caseDetailPendingChangesGuard: CanDeactivateFn<CaseDetailComponent> = component =>
-  component.canDeactivate();
+const caseDetailPendingChangesGuard: CanDeactivateFn<CaseDetailComponent> = (
+  component,
+  currentRoute,
+  _currentState,
+  nextState
+) => staysOnCase(currentRoute, nextState) || component.canDeactivate();
+
+/** Switching tabs reuses the case detail, so forms in the side panel keep their edits. */
+function staysOnCase(currentRoute: ActivatedRouteSnapshot, nextState: RouterStateSnapshot): boolean {
+  let next = nextState.root;
+  while (next.firstChild) next = next.firstChild;
+
+  return (
+    next.routeConfig === currentRoute.routeConfig &&
+    next.paramMap.get('documentId') === currentRoute.paramMap.get('documentId')
+  );
+}
 
 export {caseDetailPendingChangesGuard};

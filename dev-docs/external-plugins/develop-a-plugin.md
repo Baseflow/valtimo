@@ -497,7 +497,7 @@ policy.
 | `getPluginData(path, query?)` / `postPluginData(path, body?)` | Calls your `request()` handlers through the host's `/data` route → `Promise<{status, body}>`. |
 | `submitTask(data)` | Task forms (Levels 0/1): hand the form data to GZAC → `Promise<{ok, errors?, fieldErrors?}>`; on `ok: false` render the errors, the form stays up. |
 | `emit("taskCompleted", {})` | Level 2 only: tell the parent *you* completed the task (via `gzacApi.asUser`), so it closes and refreshes. |
-| `offerPanel({bundleKey?, key, title, subtitle?, context?})` | Show one of your `side-panel` bundles in GZAC's app-wide side panel (next section). |
+| `offerPanel({bundleKey?, key, title, subtitle?, pinned?, context?})` | Show one of your `side-panel` bundles in GZAC's app-wide side panel (next section). |
 | `withdrawPanel(key, bundleKey?)` | Remove the panel content you offered under `key`. |
 | `emit("notification", …)` / `emit("navigate", …)` | **Reserved** — defined in the message schema, but current GZAC frontends do not act on them. |
 | `setConfiguration(valid, title, data)` / `onPrefillConfiguration(h)` | The `config` bundle contract — next section. |
@@ -530,9 +530,12 @@ while looking things up elsewhere. The panel is generic: it does not know what i
   case it is about), and keep its state in your backend.
 - **Your own bundles only.** GZAC resolves the bundle from your configuration's manifest; an
   offer cannot point at a URL. `key`, `title`, `subtitle` and `bundleKey` are strings of at most
-  200 characters; an invalid offer is ignored.
-- **The panel header shows what your content belongs to.** A pin marks that the panel stays open
-  on other pages. When the offering surface is case-bound, GZAC names that case below your title
+  200 characters, and `pinned` is a boolean; an invalid offer is ignored.
+- **Pinning is your choice.** Pass `pinned: true` to mark the panel with a pin, which tells the
+  user it stays open on other pages. It is only a marker: GZAC does not withdraw content on
+  navigation either way, so when your content closes is up to you.
+- **The panel header shows what your content belongs to.** When the offering surface is
+  case-bound, GZAC names that case below your title
   (for example "For Inwonerplan #12") and links back to it; your `subtitle` is shown as plain
   text. When the user is on another page, the case is marked "Not this page", so they do not
   mistake your content for the case they are looking at. GZAC resolves the case name itself, so

@@ -86,6 +86,10 @@ export class CaseDetailTaskPanelComponent {
     this.caseDetailLayoutService.setTaskAndProcessLinkOpenedInPanel(null);
   }
 
+  public onTaskCloseRequest(): void {
+    this.caseDetailLayoutService.requestTaskClose();
+  }
+
   public onTaskFormActiveChange(pendingChanges: boolean): void {
     this.caseDetailLayoutService.setTaskFormPendingChanges(pendingChanges);
   }

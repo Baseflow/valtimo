@@ -295,18 +295,22 @@ describe('CaseDetailLayoutService', () => {
     const selected = jasmine.createSpy('selected');
     const submitted = jasmine.createSpy('submitted');
     const closeRequested = jasmine.createSpy('closeRequested');
+    const taskCloseRequested = jasmine.createSpy('taskCloseRequested');
     service.taskSelected$.subscribe(selected);
     service.taskFormSubmitted$.subscribe(submitted);
     service.startFormPanelCloseRequested$.subscribe(closeRequested);
+    service.taskCloseRequested$.subscribe(taskCloseRequested);
     const task = {} as TaskWithProcessLink;
 
     service.selectTask(task);
     service.notifyTaskFormSubmitted();
     service.requestStartFormPanelClose();
+    service.requestTaskClose();
 
     expect(selected).toHaveBeenCalledWith(task);
     expect(submitted).toHaveBeenCalled();
     expect(closeRequested).toHaveBeenCalled();
+    expect(taskCloseRequested).toHaveBeenCalled();
   });
 
   it('exposes the saved task panel width', done => {

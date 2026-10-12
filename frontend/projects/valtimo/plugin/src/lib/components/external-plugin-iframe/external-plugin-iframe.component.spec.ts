@@ -369,24 +369,37 @@ describe('ExternalPluginIframeComponent', () => {
       iframe.remove();
     });
 
-    it('offers a namespaced, pinned key with its case as origin and the trusted context over the plugin context', () => {
+    it('offers a namespaced key with its case as origin and the trusted context over the plugin context', () => {
       sendPanelMessage('offerPanel', {
         bundleKey: 'evaluatie',
         key: 'session-1',
         title: 'Evaluatie',
         subtitle: 'Plan A',
+        pinned: true,
         context: {documentId: 'forged', evaluationId: 'e-1'},
       });
 
       const offer = sidePanelService.offer.calls.mostRecent().args[0];
       expect(offer.key).toBe('external-plugin:config-1:evaluatie:session-1');
       expect(offer.origin?.route).toEqual(['/cases', 'plan', 'document', 'doc-1']);
-      expect(offer.persistent).toBeTrue();
+      expect(offer.pinned).toBeTrue();
       expect(offer.inputs?.['context']).toEqual({
         documentId: 'doc-1',
         caseDefinitionKey: 'plan',
         evaluationId: 'e-1',
       });
+    });
+
+    it('does not pin unless the plugin asks', () => {
+      sendPanelMessage('offerPanel', {key: 'session-1', title: 'Evaluatie'});
+
+      expect(sidePanelService.offer.calls.mostRecent().args[0].pinned).toBeFalsy();
+    });
+
+    it('ignores an offer with a non-boolean pinned', () => {
+      sendPanelMessage('offerPanel', {key: 'session-1', title: 'Evaluatie', pinned: 'yes'});
+
+      expect(sidePanelService.offer).not.toHaveBeenCalled();
     });
 
     it('ignores an offer without a title', () => {

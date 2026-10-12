@@ -112,6 +112,11 @@ export interface PanelOffer {
   key: string;
   title: string;
   subtitle?: string;
+  /**
+   * Marks the panel with a pin, telling the user it stays open on other pages. A marker only:
+   * withdrawing stays up to you.
+   */
+  pinned?: boolean;
   context?: Record<string, unknown>;
 }
 

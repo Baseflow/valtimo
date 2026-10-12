@@ -882,10 +882,27 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
       this.caseDetailLayoutService.taskFormSubmitted$.subscribe(() => this.onFormSubmitEvent())
     );
     this._subscriptions.add(
-      this.caseDetailLayoutService.startFormPanelCloseRequested$.subscribe(() =>
-        this.onStartFormPanelClose()
-      )
+      this.caseDetailLayoutService.startFormPanelCloseRequested$
+        .pipe(
+          switchMap(() => this.confirmDiscardChanges()),
+          filter(Boolean)
+        )
+        .subscribe(() => this.onStartFormPanelClose())
     );
+    this._subscriptions.add(
+      this.caseDetailLayoutService.taskCloseRequested$
+        .pipe(
+          switchMap(() => this.confirmDiscardChanges()),
+          filter(Boolean)
+        )
+        .subscribe(() => this.onTaskDetailsClose())
+    );
+  }
+
+  /** True at once without unsaved edits, else the user's answer to the pending changes modal. */
+  private confirmDiscardChanges(): Observable<boolean> {
+    const decision = this.canDeactivate();
+    return typeof decision === 'boolean' ? of(decision) : decision;
   }
 
   /** The page header above can wrap onto more rows; the tab content fills what remains. */

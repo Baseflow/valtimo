@@ -38,7 +38,7 @@
     <header class="valtimo-side-panel__header">
       <div class="valtimo-side-panel__titles">
         <div class="valtimo-side-panel__title-row">
-          @if (current.persistent) {
+          @if (current.pinned) {
             <cds-tooltip [description]="'sidePanel.pinned' | translate" align="bottom-left">
               <span
                 [attr.aria-label]="'sidePanel.pinned' | translate"
