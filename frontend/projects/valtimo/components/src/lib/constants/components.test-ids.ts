@@ -155,4 +155,7 @@ export const SIDE_PANEL_TEST_IDS = {
   closeButton: 'sidePanelCloseButton',
   resizeHandle: 'sidePanelResizeHandle',
   subtitleLink: 'sidePanelSubtitleLink',
+  pinnedIcon: 'sidePanelPinnedIcon',
+  origin: 'sidePanelOrigin',
+  originElsewhere: 'sidePanelOriginElsewhere',
 } as const;

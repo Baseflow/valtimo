@@ -78,6 +78,69 @@ describe('SidePanelService', () => {
     expect((await firstValueFrom(service.current$))?.key).toBe('a');
   });
 
+  it('hides on request of the provider without reporting a dismissal', async () => {
+    const handle = service.offer(offer('a'));
+    const dismissedSpy = jasmine.createSpy('dismissed');
+    handle.dismissed$.subscribe(dismissedSpy);
+
+    handle.hide();
+
+    expect(dismissedSpy).not.toHaveBeenCalled();
+    expect(await firstValueFrom(service.visible$)).toBeFalse();
+    expect((await firstValueFrom(service.current$))?.key).toBe('a');
+  });
+
+  it('ignores a hide from a replaced provider', async () => {
+    const first = service.offer(offer('a'));
+    service.offer(offer('b'));
+
+    first.hide();
+
+    expect(await firstValueFrom(service.visible$)).toBeTrue();
+  });
+
+  it('widens to the content minimum without changing the preferred width', async () => {
+    service.setWidth(340);
+    service.offer({...offer('a'), minWidth: 420});
+
+    expect(await firstValueFrom(service.width$)).toBe(420);
+
+    service.offer(offer('b'));
+
+    expect(await firstValueFrom(service.width$)).toBe(340);
+  });
+
+  it('uses the width content brings and leaves the stored width alone when resized', async () => {
+    service.setWidth(340);
+    const handle = service.offer({...offer('a'), width: 400});
+    const resizedSpy = jasmine.createSpy('resized');
+    handle.resized$.subscribe(resizedSpy);
+
+    expect(await firstValueFrom(service.width$)).toBe(400);
+
+    service.setWidth(360);
+    service.endResize();
+
+    expect(await firstValueFrom(service.width$)).toBe(360);
+    expect(resizedSpy).toHaveBeenCalledOnceWith(360);
+    expect(localStorage.getItem('sidePanelWidth')).toBe('340');
+
+    service.offer(offer('b'));
+
+    expect(await firstValueFrom(service.width$)).toBe(340);
+  });
+
+  it('keeps a resize when the same content is re-offered with an unchanged width', async () => {
+    service.offer({...offer('a'), width: 400});
+    service.setWidth(360);
+
+    service.offer({...offer('a', 'Updated'), width: 400});
+    expect(await firstValueFrom(service.width$)).toBe(360);
+
+    service.offer({...offer('a'), width: 420});
+    expect(await firstValueFrom(service.width$)).toBe(420);
+  });
+
   it('ignores a withdraw from a replaced provider', async () => {
     const first = service.offer(offer('a'));
     service.offer(offer('b'));

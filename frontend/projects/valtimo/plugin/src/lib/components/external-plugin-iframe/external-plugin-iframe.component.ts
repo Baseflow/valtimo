@@ -19,6 +19,8 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
+  Injector,
   Input,
   OnDestroy,
   OnInit,
@@ -28,9 +30,10 @@ import {
 } from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
-import {Subscription} from 'rxjs';
+import {catchError, defer, forkJoin, map, Observable, of, shareReplay, Subscription} from 'rxjs';
 import {TranslateService} from '@ngx-translate/core';
 import {CdsThemeService, CurrentCarbonTheme, SidePanelService} from '@valtimo/components';
+import {DocumentService} from '@valtimo/document';
 import {ConfigService} from '@valtimo/shared';
 import {ExternalPluginEndpoint, ExternalPluginPanelOffer} from '../../models';
 import {ExternalPluginSidePanelComponent} from '../external-plugin-side-panel/external-plugin-side-panel.component';
@@ -105,6 +108,7 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
 
   public readonly $trustedUrl = signal<SafeResourceUrl | null>(null);
 
+  private readonly _injector = inject(Injector);
   private readonly _onMessageBound = this._onMessage.bind(this);
   private readonly _subscriptions = new Subscription();
   private _theme: CurrentCarbonTheme = CurrentCarbonTheme.WHITE;
@@ -245,10 +249,16 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
       key: this._panelKey(offer.bundleKey, offer.key),
       title: offer.title,
       subtitle: offer.subtitle,
-      subtitleLink:
+      // Named by GZAC, never by the plugin, so the user can trust which case it is for.
+      origin:
         documentId && caseDefinitionKey
-          ? ['/cases', caseDefinitionKey, 'document', documentId]
+          ? {
+              route: ['/cases', caseDefinitionKey, 'document', documentId],
+              label: this._caseLabel(caseDefinitionKey, documentId),
+            }
           : undefined,
+      // Plugin panels are not tied to the page that offered them.
+      persistent: true,
       component: ExternalPluginSidePanelComponent,
       inputs: {
         bundleKey: offer.bundleKey ?? null,
@@ -265,6 +275,28 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
     if (bundleKey !== undefined && !this._isPanelText(bundleKey)) return;
 
     this._sidePanelService.withdraw(this._panelKey(bundleKey as string | undefined, key));
+  }
+
+  /** E.g. "Inwonerplan #12". Resolved only once shown. */
+  private _caseLabel(caseDefinitionKey: string, documentId: string): Observable<string> {
+    return defer(() => {
+      const documentService = this._injector.get(DocumentService);
+      return forkJoin({
+        caseDefinition: documentService
+          .getActiveCaseDefinition(caseDefinitionKey)
+          .pipe(catchError(() => of(null))),
+        documentDefinition: documentService
+          .getDocumentDefinition(caseDefinitionKey)
+          .pipe(catchError(() => of(null))),
+        document: documentService.getDocument(documentId).pipe(catchError(() => of(null))),
+      });
+    }).pipe(
+      map(({caseDefinition, documentDefinition, document}) => {
+        const name = caseDefinition?.name || documentDefinition?.schema?.title || caseDefinitionKey;
+        return document?.sequence ? `${name} #${document.sequence}` : name;
+      }),
+      shareReplay({bufferSize: 1, refCount: false})
+    );
   }
 
   private _contextString(name: string): string | null {

@@ -15,7 +15,7 @@
  */
 
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, Observable, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, distinctUntilChanged, map, Observable, Subject} from 'rxjs';
 import {SidePanelHandle, SidePanelOffer} from '../models';
 
 const SIDE_PANEL_WIDTH_STORAGE_KEY = 'sidePanelWidth';
@@ -26,11 +26,20 @@ const SIDE_PANEL_MAX_WIDTH = 960;
 class SidePanelHandleImpl implements SidePanelHandle {
   private readonly _dismissed$ = new Subject<void>();
   private readonly _replaced$ = new Subject<void>();
+  private readonly _resized$ = new Subject<number>();
 
   public readonly dismissed$ = this._dismissed$.asObservable();
   public readonly replaced$ = this._replaced$.asObservable();
+  public readonly resized$ = this._resized$.asObservable();
 
-  constructor(private readonly _onWithdraw: (handle: SidePanelHandleImpl) => void) {}
+  constructor(
+    private readonly _onHide: (handle: SidePanelHandleImpl) => void,
+    private readonly _onWithdraw: (handle: SidePanelHandleImpl) => void
+  ) {}
+
+  public hide(): void {
+    this._onHide(this);
+  }
 
   public withdraw(): void {
     this._onWithdraw(this);
@@ -44,6 +53,11 @@ class SidePanelHandleImpl implements SidePanelHandle {
     this._replaced$.next();
     this._dismissed$.complete();
     this._replaced$.complete();
+    this._resized$.complete();
+  }
+
+  public notifyResized(width: number): void {
+    this._resized$.next(width);
   }
 }
 
@@ -58,7 +72,9 @@ class SidePanelHandleImpl implements SidePanelHandle {
 export class SidePanelService {
   private readonly _current$ = new BehaviorSubject<SidePanelOffer | null>(null);
   private readonly _visible$ = new BehaviorSubject<boolean>(false);
-  private readonly _width$ = new BehaviorSubject<number>(this.loadWidth());
+  private readonly _preferredWidth$ = new BehaviorSubject<number>(this.loadWidth());
+  /** Width of content that brings its own; such content persists it, not the panel. */
+  private readonly _contentWidth$ = new BehaviorSubject<number | null>(null);
   private _currentHandle: SidePanelHandleImpl | null = null;
 
   public get current$(): Observable<SidePanelOffer | null> {
@@ -69,8 +85,14 @@ export class SidePanelService {
     return this._visible$.asObservable();
   }
 
+  /** The content's own width or else the user's preferred width, widened to the content's minimum. */
   public get width$(): Observable<number> {
-    return this._width$.asObservable();
+    return combineLatest([this._preferredWidth$, this._contentWidth$, this._current$]).pipe(
+      map(([preferred, contentWidth, current]) =>
+        this.clampWidth(Math.max(contentWidth ?? preferred, current?.minWidth ?? 0))
+      ),
+      distinctUntilChanged()
+    );
   }
 
   public dismiss(): void {
@@ -80,15 +102,23 @@ export class SidePanelService {
   }
 
   public offer(offer: SidePanelOffer): SidePanelHandle {
-    if (this._currentHandle && this._current$.getValue()?.key === offer.key) {
+    const current = this._current$.getValue();
+
+    if (this._currentHandle && current?.key === offer.key) {
+      // Only a changed width from the provider wins over a resize it has not caught up with yet.
+      if (offer.width !== current.width) this._contentWidth$.next(offer.width ?? null);
       this._current$.next(offer);
       this._visible$.next(true);
       return this._currentHandle;
     }
 
     this._currentHandle?.notifyReplaced();
-    const handle = new SidePanelHandleImpl(withdrawn => this.withdrawHandle(withdrawn));
+    const handle = new SidePanelHandleImpl(
+      hidden => this.hideHandle(hidden),
+      withdrawn => this.withdrawHandle(withdrawn)
+    );
     this._currentHandle = handle;
+    this._contentWidth$.next(offer.width ?? null);
     this._current$.next(offer);
     this._visible$.next(true);
     return handle;
@@ -105,15 +135,33 @@ export class SidePanelService {
     }
   }
 
+  /** Resizes live. Call [endResize] once the user lets go. */
   public setWidth(width: number): void {
     const clamped = this.clampWidth(width);
-    this._width$.next(clamped);
+
+    if (this._contentWidth$.getValue() !== null) {
+      this._contentWidth$.next(clamped);
+      return;
+    }
+
+    this._preferredWidth$.next(clamped);
     localStorage.setItem(SIDE_PANEL_WIDTH_STORAGE_KEY, `${clamped}`);
+  }
+
+  /** Reports the final width to the provider of the current content. */
+  public endResize(): void {
+    this._currentHandle?.notifyResized(
+      this._contentWidth$.getValue() ?? this._preferredWidth$.getValue()
+    );
   }
 
   private clampWidth(width: number): number {
     const max = Math.min(SIDE_PANEL_MAX_WIDTH, Math.floor(window.innerWidth * 0.6));
     return Math.round(Math.max(SIDE_PANEL_MIN_WIDTH, Math.min(width, max)));
+  }
+
+  private hideHandle(handle: SidePanelHandleImpl): void {
+    if (handle === this._currentHandle && this._visible$.getValue()) this._visible$.next(false);
   }
 
   private loadWidth(): number {
@@ -126,6 +174,7 @@ export class SidePanelService {
   private withdrawHandle(handle: SidePanelHandleImpl): void {
     if (handle !== this._currentHandle) return;
     this._currentHandle = null;
+    this._contentWidth$.next(null);
     this._current$.next(null);
     this._visible$.next(false);
   }

@@ -30,10 +30,7 @@ describe('CaseDetailLayoutService', () => {
 
   const CONTAINER_WIDTH = 1600;
 
-  const createService = (
-    settings: UserSettings,
-    showTaskList = true
-  ): CaseDetailLayoutService => {
+  const createService = (settings: UserSettings, showTaskList = true): CaseDetailLayoutService => {
     userSettingsService.getUserSettings.and.returnValue(of(settings));
 
     TestBed.configureTestingModule({
@@ -291,5 +288,46 @@ describe('CaseDetailLayoutService', () => {
       done();
     });
     service.setTabContentContainerWidth(CONTAINER_WIDTH);
+  });
+
+  it('reports actions taken in the task panel to the case detail', () => {
+    service = createService({});
+    const selected = jasmine.createSpy('selected');
+    const submitted = jasmine.createSpy('submitted');
+    const closeRequested = jasmine.createSpy('closeRequested');
+    service.taskSelected$.subscribe(selected);
+    service.taskFormSubmitted$.subscribe(submitted);
+    service.startFormPanelCloseRequested$.subscribe(closeRequested);
+    const task = {} as TaskWithProcessLink;
+
+    service.selectTask(task);
+    service.notifyTaskFormSubmitted();
+    service.requestStartFormPanelClose();
+
+    expect(selected).toHaveBeenCalledWith(task);
+    expect(submitted).toHaveBeenCalled();
+    expect(closeRequested).toHaveBeenCalled();
+  });
+
+  it('exposes the saved task panel width', done => {
+    service = createService({taskPanelWidth: 700});
+
+    service.taskPanelWidth$.pipe(take(1)).subscribe(width => {
+      expect(width).toBe(700);
+      done();
+    });
+  });
+
+  it('has pending changes while a task or start form is edited, until cleared', () => {
+    service = createService({});
+    expect(service.hasPendingFormChanges).toBeFalse();
+
+    service.setTaskFormPendingChanges(true);
+    service.setStartFormPendingChanges(true);
+    service.setTaskFormPendingChanges(false);
+    expect(service.hasPendingFormChanges).toBeTrue();
+
+    service.clearPendingFormChanges();
+    expect(service.hasPendingFormChanges).toBeFalse();
   });
 });

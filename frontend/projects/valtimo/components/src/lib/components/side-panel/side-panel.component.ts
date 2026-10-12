@@ -23,11 +23,18 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
-import {toSignal} from '@angular/core/rxjs-interop';
-import {RouterLink} from '@angular/router';
-import {Close16} from '@carbon/icons';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
+import {NavigationEnd, Router, RouterLink} from '@angular/router';
+import {Close16, PinFilled16} from '@carbon/icons';
 import {TranslateModule} from '@ngx-translate/core';
-import {ButtonModule, IconModule, IconService} from 'carbon-components-angular';
+import {
+  ButtonModule,
+  IconModule,
+  IconService,
+  TagModule,
+  TooltipModule,
+} from 'carbon-components-angular';
+import {filter, isObservable, map, of, startWith, switchMap} from 'rxjs';
 import {SIDE_PANEL_TEST_IDS} from '../../constants';
 import {SidePanelOffer} from '../../models';
 import {ShellService, SidePanelService} from '../../services';
@@ -47,13 +54,41 @@ const SIDE_PANEL_KEYBOARD_RESIZE_STEP = 16;
   templateUrl: './side-panel.component.html',
   styleUrls: ['./side-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgComponentOutlet, RouterLink, TranslateModule, ButtonModule, IconModule],
+  imports: [
+    NgComponentOutlet,
+    RouterLink,
+    TranslateModule,
+    ButtonModule,
+    IconModule,
+    TagModule,
+    TooltipModule,
+  ],
 })
 export class SidePanelComponent implements OnDestroy {
   public readonly $current = toSignal(this.sidePanelService.current$, {initialValue: null});
   public readonly $offers = computed<Array<SidePanelOffer>>(() => {
     const current = this.$current();
     return current ? [current] : [];
+  });
+  /** The origin's label; null while a resolving label has not arrived. */
+  public readonly $originLabel = toSignal(
+    toObservable(this.$current).pipe(
+      switchMap(current => {
+        const label = current?.origin?.label;
+        if (label === undefined) return of(null);
+        return isObservable(label) ? label.pipe(startWith(null)) : of(label);
+      })
+    ),
+    {initialValue: null}
+  );
+  /** The user is on a page other than the one the content belongs to. */
+  public readonly $originElsewhere = computed<boolean>(() => {
+    const origin = this.$current()?.origin;
+    if (!origin) return false;
+
+    const originUrl = this.router.serializeUrl(this.router.createUrlTree(origin.route));
+    const url = this._$url().split(/[?#]/)[0];
+    return url !== originUrl && !url.startsWith(`${originUrl}/`);
   });
   public readonly $resizing = signal<boolean>(false);
   public readonly $visible = toSignal(this.sidePanelService.visible$, {initialValue: false});
@@ -62,13 +97,22 @@ export class SidePanelComponent implements OnDestroy {
   protected readonly testIds = SIDE_PANEL_TEST_IDS;
 
   private readonly _$largeScreen = toSignal(this.shellService.largeScreen$, {initialValue: true});
+  private readonly _$url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(event => event.urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    {requireSync: true}
+  );
 
   constructor(
     private readonly iconService: IconService,
+    private readonly router: Router,
     private readonly shellService: ShellService,
     private readonly sidePanelService: SidePanelService
   ) {
-    this.iconService.register(Close16);
+    this.iconService.registerAll([Close16, PinFilled16]);
 
     // Small screens: overlay instead of push.
     effect(() => {
@@ -87,6 +131,7 @@ export class SidePanelComponent implements OnDestroy {
 
   public onResizeKey(delta: number): void {
     this.sidePanelService.setWidth(this.$width() + delta * SIDE_PANEL_KEYBOARD_RESIZE_STEP);
+    this.sidePanelService.endResize();
   }
 
   public onResizeStart(event: MouseEvent): void {
@@ -103,6 +148,7 @@ export class SidePanelComponent implements OnDestroy {
       document.body.style.removeProperty('user-select');
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      this.sidePanelService.endResize();
     };
 
     document.addEventListener('mousemove', onMove);

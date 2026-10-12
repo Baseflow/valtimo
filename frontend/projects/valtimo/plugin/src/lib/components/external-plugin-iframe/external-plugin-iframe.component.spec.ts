@@ -369,7 +369,7 @@ describe('ExternalPluginIframeComponent', () => {
       iframe.remove();
     });
 
-    it('offers a namespaced key, a case link and the trusted context over the plugin context', () => {
+    it('offers a namespaced, pinned key with its case as origin and the trusted context over the plugin context', () => {
       sendPanelMessage('offerPanel', {
         bundleKey: 'evaluatie',
         key: 'session-1',
@@ -380,7 +380,8 @@ describe('ExternalPluginIframeComponent', () => {
 
       const offer = sidePanelService.offer.calls.mostRecent().args[0];
       expect(offer.key).toBe('external-plugin:config-1:evaluatie:session-1');
-      expect(offer.subtitleLink).toEqual(['/cases', 'plan', 'document', 'doc-1']);
+      expect(offer.origin?.route).toEqual(['/cases', 'plan', 'document', 'doc-1']);
+      expect(offer.persistent).toBeTrue();
       expect(offer.inputs?.['context']).toEqual({
         documentId: 'doc-1',
         caseDefinitionKey: 'plan',

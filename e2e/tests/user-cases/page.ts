@@ -212,10 +212,14 @@ export class UserCasesPage {
     );
   }
 
-  // ─── Task list (right panel) ─────────────────────────────────────
+  // ─── Task list (side panel) ──────────────────────────────────────
+
+  get taskPanel(): Locator {
+    return this.page.getByTestId(CASE_DETAIL_PANEL_TEST_IDS.taskPanel);
+  }
 
   get taskListPanel(): Locator {
-    return this.page.locator('valtimo-case-detail-task-list');
+    return this.taskPanel.locator('valtimo-case-detail-task-list');
   }
 
   taskTileByName(taskName: string): Locator {
@@ -308,7 +312,7 @@ export class UserCasesPage {
   // ─── Task detail opened in the side panel ────────────────────────
 
   get taskDetailPanel(): Locator {
-    return this.page.locator('.task-panel valtimo-case-detail-task-detail');
+    return this.taskPanel.locator('valtimo-case-detail-task-detail');
   }
 
   async openTaskInPanel(taskName: string) {

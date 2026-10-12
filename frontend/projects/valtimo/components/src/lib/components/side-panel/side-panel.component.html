@@ -37,7 +37,23 @@
   @if ($current(); as current) {
     <header class="valtimo-side-panel__header">
       <div class="valtimo-side-panel__titles">
-        <h2 class="valtimo-side-panel__title">{{ current.title }}</h2>
+        <div class="valtimo-side-panel__title-row">
+          @if (current.persistent) {
+            <cds-tooltip [description]="'sidePanel.pinned' | translate" align="bottom-left">
+              <span
+                [attr.aria-label]="'sidePanel.pinned' | translate"
+                [attr.data-test-id]="testIds.pinnedIcon"
+                class="valtimo-side-panel__pin"
+                role="img"
+                tabindex="0"
+              >
+                <svg cdsIcon="pin--filled" size="16"></svg>
+              </span>
+            </cds-tooltip>
+          }
+
+          <h2 class="valtimo-side-panel__title">{{ current.title }}</h2>
+        </div>
 
         @if (current.subtitle) {
           @if (current.subtitleLink) {
@@ -51,6 +67,30 @@
             <span class="valtimo-side-panel__subtitle">{{ current.subtitle }}</span>
           }
         }
+
+        @if (current.origin; as origin) {
+          <div [attr.data-test-id]="testIds.origin" class="valtimo-side-panel__origin">
+            <span>{{ 'sidePanel.originFor' | translate }}</span>
+
+            <a [routerLink]="origin.route" class="valtimo-side-panel__origin-link">{{
+              $originLabel() ?? ('sidePanel.originFallback' | translate)
+            }}</a>
+
+            @if ($originElsewhere()) {
+              <cds-tag
+                [attr.data-test-id]="testIds.originElsewhere"
+                [title]="
+                  'sidePanel.originElsewhereDescription'
+                    | translate: {label: $originLabel() ?? ('sidePanel.originFallback' | translate)}
+                "
+                class="valtimo-side-panel__origin-tag"
+                size="sm"
+                type="warm-gray"
+                >{{ 'sidePanel.originElsewhere' | translate }}</cds-tag
+              >
+            }
+          </div>
+        }
       </div>
 
       <button
@@ -59,7 +99,7 @@
         [iconOnly]="true"
         (click)="onClose()"
         cdsButton="ghost"
-        size="sm"
+        class="valtimo-side-panel__close"
       >
         <svg cdsIcon="close" class="cds--btn__icon" size="16"></svg>
       </button>
@@ -68,7 +108,9 @@
 
   <div class="valtimo-side-panel__body">
     @for (offer of $offers(); track offer.key) {
-      <ng-container *ngComponentOutlet="offer.component; inputs: offer.inputs ?? {}"></ng-container>
+      <ng-container
+        *ngComponentOutlet="offer.component; inputs: offer.inputs ?? {}; injector: offer.injector"
+      ></ng-container>
     }
   </div>
 </aside>

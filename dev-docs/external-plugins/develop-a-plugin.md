@@ -531,7 +531,12 @@ while looking things up elsewhere. The panel is generic: it does not know what i
 - **Your own bundles only.** GZAC resolves the bundle from your configuration's manifest; an
   offer cannot point at a URL. `key`, `title`, `subtitle` and `bundleKey` are strings of at most
   200 characters; an invalid offer is ignored.
-- When the offering surface is case-bound, the panel subtitle links back to that case.
+- **The panel header shows what your content belongs to.** A pin marks that the panel stays open
+  on other pages. When the offering surface is case-bound, GZAC names that case below your title
+  (for example "For Inwonerplan #12") and links back to it; your `subtitle` is shown as plain
+  text. When the user is on another page, the case is marked "Not this page", so they do not
+  mistake your content for the case they are looking at. GZAC resolves the case name itself, so
+  you don't need to put it in your `subtitle`.
 
 ### The `config` bundle contract
 

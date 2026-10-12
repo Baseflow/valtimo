@@ -36,7 +36,7 @@ import {
   ListItem,
   ToggletipModule,
 } from 'carbon-components-angular';
-import {Group16, User16, UserFollow16} from '@carbon/icons';
+import {Edit16, Group16, User16, UserFollow16} from '@carbon/icons';
 import {BehaviorSubject, combineLatest, Observable, of, Subject, Subscription, take} from 'rxjs';
 import {NamedUser, TeamResponseDto, UserIdentity} from '@valtimo/shared';
 import {UserProviderService} from '@valtimo/security';
@@ -69,6 +69,8 @@ export class AssignmentComponent implements OnInit, OnChanges, OnDestroy {
 
   @Input() public mode: AssignmentMode = 'case';
   @Input() public hasPermission = true;
+  /** Icon-only, for tight layouts; names show as a tooltip. */
+  @Input() public compact = false;
 
   @Input() public set assigneeId(value: string) {
     this._assigneeId = value || null;
@@ -123,6 +125,12 @@ export class AssignmentComponent implements OnInit, OnChanges, OnDestroy {
     return this.mode === 'case' ? 'assignment.assignThisCase' : 'assignment.assignThisTask';
   }
 
+  public get assignedNames(): string {
+    return [this._assigneeFullName || this._assigneeId, this._assignedTeamTitle]
+      .filter(name => !!name)
+      .join(' & ');
+  }
+
   public get hasEditChanges(): boolean {
     return (
       this.selectedUserId$.getValue() !== this._initialUserId ||
@@ -140,7 +148,7 @@ export class AssignmentComponent implements OnInit, OnChanges, OnDestroy {
     private readonly _translateService: TranslateService,
     private readonly _userProviderService: UserProviderService
   ) {
-    this._iconService.registerAll([UserFollow16, Group16, User16]);
+    this._iconService.registerAll([Edit16, UserFollow16, Group16, User16]);
     this._subscriptions.add(
       this._userProviderService.getUserSubject().subscribe(user => {
         this._currentUser = user;

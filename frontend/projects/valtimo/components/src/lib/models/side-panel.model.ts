@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-import {Type} from '@angular/core';
+import {Injector, Type} from '@angular/core';
 import {Observable} from 'rxjs';
+
+/** Where panel content belongs, e.g. the case it was opened for. */
+interface SidePanelOrigin {
+  /** Plain text, or a stream for a label resolved after offering. */
+  label: string | Observable<string>;
+  route: Array<string>;
+}
 
 /**
  * Content offered to the app-wide side panel. [key] identifies the content: re-offering the current
@@ -28,13 +35,30 @@ interface SidePanelOffer {
   subtitleLink?: string | Array<string>;
   component: Type<unknown>;
   inputs?: Record<string, unknown>;
+  /** Parent injector for the content, so it resolves the provider's route and page-scoped services. */
+  injector?: Injector;
+  /** Widens the panel while this content shows, without changing the user's preferred width. */
+  minWidth?: number;
+  /** Shown in the header as a link, and marked when the user is on another page. */
+  origin?: SidePanelOrigin;
+  /** Stays open when navigating to other pages; marked with a pin. */
+  persistent?: boolean;
+  /**
+   * The content's own width, used instead of the panel's stored width. The provider persists it:
+   * the handle's `resized$` reports each resize.
+   */
+  width?: number;
 }
 
 /** Returned to the provider of an offer. */
 interface SidePanelHandle {
   readonly dismissed$: Observable<void>;
   readonly replaced$: Observable<void>;
+  /** The width the user resized the panel to while showing this content. */
+  readonly resized$: Observable<number>;
+  /** Hides the content but keeps it alive. Re-offer the same key to show it again. */
+  hide(): void;
   withdraw(): void;
 }
 
-export {SidePanelHandle, SidePanelOffer};
+export {SidePanelHandle, SidePanelOffer, SidePanelOrigin};
