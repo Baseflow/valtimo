@@ -124,6 +124,10 @@ export class SidePanelService {
     return handle;
   }
 
+  /**
+   * Shows retained content again, also when hidden via `SidePanelHandle.hide()`. Does not notify
+   * the provider.
+   */
   public reopen(): void {
     if (this._current$.getValue()) this._visible$.next(true);
   }

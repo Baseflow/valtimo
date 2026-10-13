@@ -7,10 +7,6 @@
 * [Overview](getting-started/README.md)
 * [Development Setup](getting-started/development-setup.md)
 
-## Frontend
-
-* [Using the side panel](frontend/side-panel.md)
-
 ## External Plugin System
 
 * [Overview](external-plugins/README.md)

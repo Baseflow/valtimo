@@ -390,6 +390,14 @@ describe('ExternalPluginIframeComponent', () => {
       });
     });
 
+    it('keeps keys distinct when bundle key or key contains the separator', () => {
+      sendPanelMessage('offerPanel', {bundleKey: 'a:b', key: 'c', title: 'Evaluatie'});
+      sendPanelMessage('offerPanel', {bundleKey: 'a', key: 'b:c', title: 'Evaluatie'});
+
+      const [first, second] = sidePanelService.offer.calls.allArgs().map(([offer]) => offer.key);
+      expect(first).not.toBe(second);
+    });
+
     it('does not pin unless the plugin asks', () => {
       sendPanelMessage('offerPanel', {key: 'session-1', title: 'Evaluatie'});
 

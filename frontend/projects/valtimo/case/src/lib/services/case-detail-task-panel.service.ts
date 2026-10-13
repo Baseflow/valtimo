@@ -34,13 +34,9 @@ import {
   CASE_DETAIL_RIGHT_PANEL_MIN_WIDTHS,
   CASE_DETAIL_TASK_LIST_WIDTH,
 } from '../constants/case-detail-layout.constants';
+import {TaskPanelSize} from '../models';
 import {CaseDetailLayoutService} from './case-detail-layout.service';
 import {CaseTabService} from './case-tab.service';
-
-interface TaskPanelSize {
-  minWidth?: number;
-  width: number;
-}
 
 let taskPanelCount = 0;
 

@@ -96,6 +96,8 @@ export class SidePanelComponent implements OnDestroy {
 
   protected readonly testIds = SIDE_PANEL_TEST_IDS;
 
+  private _endResize: (() => void) | null = null;
+
   private readonly _$largeScreen = toSignal(this.shellService.largeScreen$, {initialValue: true});
   private readonly _$url = toSignal(
     this.router.events.pipe(
@@ -122,6 +124,7 @@ export class SidePanelComponent implements OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    this._endResize?.();
     document.documentElement.style.removeProperty(SIDE_PANEL_OFFSET_PROPERTY);
   }
 
@@ -149,8 +152,10 @@ export class SidePanelComponent implements OnDestroy {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       this.sidePanelService.endResize();
+      this._endResize = null;
     };
 
+    this._endResize = onUp;
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }

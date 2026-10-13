@@ -308,7 +308,7 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
   }
 
   private _panelKey(bundleKey: string | undefined, key: string): string {
-    return `external-plugin:${this.configurationId}:${bundleKey ?? ''}:${key}`;
+    return `external-plugin:${this.configurationId}:${encodeURIComponent(bundleKey ?? '')}:${encodeURIComponent(key)}`;
   }
 
   private _parsePanelOffer(payload: unknown): ExternalPluginPanelOffer | null {

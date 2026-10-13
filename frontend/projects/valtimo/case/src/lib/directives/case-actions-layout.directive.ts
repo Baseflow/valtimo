@@ -39,33 +39,15 @@ import {
   Subscription,
   switchMap,
 } from 'rxjs';
+import {
+  CaseActionsCollapsible,
+  CaseActionsDecision,
+  CaseActionsLayout,
+  CaseActionsLayoutOption,
+  CaseActionsMeasurement,
+} from '../models';
 
-/** An action that can collapse to an icon-only button. */
-type CaseActionsCollapsible = 'assignment' | 'start';
-
-/**
- * Roomiest first: `inline` shows everything in full, `condensed` collapses the assignment,
- * `minimal` also the start button, `wrapped` additionally lets the groups wrap onto their own rows.
- */
-type CaseActionsLayout = 'inline' | 'condensed' | 'minimal' | 'wrapped';
-
-interface CaseActionsMeasurement {
-  available: number;
-  collapsibles: Array<{name: CaseActionsCollapsible; collapsed: boolean; width: number}>;
-  gap: number;
-  groupWidths: Array<number>;
-  padding: number;
-}
-
-interface CaseActionsDecision {
-  layout: CaseActionsLayout;
-  minWidth: number;
-}
-
-const CASE_ACTIONS_LAYOUTS: Array<{
-  layout: CaseActionsLayout;
-  collapsed: Array<CaseActionsCollapsible>;
-}> = [
+const CASE_ACTIONS_LAYOUTS: Array<CaseActionsLayoutOption> = [
   {layout: 'inline', collapsed: []},
   {layout: 'condensed', collapsed: ['assignment']},
   {layout: 'minimal', collapsed: ['assignment', 'start']},
@@ -247,5 +229,3 @@ export class CaseActionsLayoutDirective implements AfterViewInit, OnDestroy {
     return `${name}:${collapsed}`;
   }
 }
-
-export {CaseActionsCollapsible, CaseActionsLayout};
