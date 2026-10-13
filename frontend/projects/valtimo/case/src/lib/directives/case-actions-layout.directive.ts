@@ -46,6 +46,7 @@ import {
   CaseActionsLayoutOption,
   CaseActionsMeasurement,
 } from '../models';
+import {CASE_ACTIONS_COLLAPSED_WIDTH_ESTIMATE} from '../constants/case-detail-layout.constants';
 
 const CASE_ACTIONS_LAYOUTS: Array<CaseActionsLayoutOption> = [
   {layout: 'inline', collapsed: []},
@@ -57,8 +58,6 @@ const CASE_ACTIONS_LAYOUTS: Array<CaseActionsLayoutOption> = [
 const GROUP_ATTRIBUTE = 'data-case-actions-group';
 const COLLAPSIBLE_ATTRIBUTE = 'data-case-actions-collapsible';
 const COLLAPSED_ATTRIBUTE = 'data-case-actions-collapsed';
-// An icon-only `lg` button, until the collapsed item has been measured.
-const COLLAPSED_WIDTH_ESTIMATE = 48;
 
 /**
  * Picks the roomiest layout for the case header actions that fits their row, padding preserved.
@@ -221,7 +220,7 @@ export class CaseActionsLayoutDirective implements AfterViewInit, OnDestroy {
   private widthIn(name: CaseActionsCollapsible, collapsed: boolean, currentWidth: number): number {
     return (
       this._widths.get(this.widthKey(name, collapsed)) ??
-      (collapsed ? Math.min(currentWidth, COLLAPSED_WIDTH_ESTIMATE) : currentWidth)
+      (collapsed ? Math.min(currentWidth, CASE_ACTIONS_COLLAPSED_WIDTH_ESTIMATE) : currentWidth)
     );
   }
 

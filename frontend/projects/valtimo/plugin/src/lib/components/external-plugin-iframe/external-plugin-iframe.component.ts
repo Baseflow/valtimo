@@ -19,7 +19,6 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  inject,
   Injector,
   Input,
   OnDestroy,
@@ -108,7 +107,6 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
 
   public readonly $trustedUrl = signal<SafeResourceUrl | null>(null);
 
-  private readonly _injector = inject(Injector);
   private readonly _onMessageBound = this._onMessage.bind(this);
   private readonly _subscriptions = new Subscription();
   private _theme: CurrentCarbonTheme = CurrentCarbonTheme.WHITE;
@@ -120,7 +118,8 @@ export class ExternalPluginIframeComponent implements OnInit, OnDestroy {
     private readonly _translateService: TranslateService,
     private readonly _configService: ConfigService,
     private readonly _sidePanelService: SidePanelService,
-    private readonly _cdsThemeService: CdsThemeService
+    private readonly _cdsThemeService: CdsThemeService,
+    private readonly _injector: Injector
   ) {
     this._apiBasePath = this._deriveApiBasePath();
   }

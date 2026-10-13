@@ -30,7 +30,10 @@ describe('CaseDetailLayoutService', () => {
 
   const CONTAINER_WIDTH = 1600;
 
-  const createService = (settings: UserSettings, showTaskList = true): CaseDetailLayoutService => {
+  const createService = (
+    settings: UserSettings,
+    showTaskList = true
+  ): CaseDetailLayoutService => {
     userSettingsService.getUserSettings.and.returnValue(of(settings));
 
     TestBed.configureTestingModule({

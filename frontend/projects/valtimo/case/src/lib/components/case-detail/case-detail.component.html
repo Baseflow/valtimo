@@ -105,8 +105,8 @@
     #taskDetailModal
     [modalSize]="formDisplaySize$ | async"
     [openFromCaseManagement]="true"
-    (assignmentOfTaskChanged)="onDueDateChanged()"
-    (dueDateChanged)="onDueDateChanged()"
+    (assignmentOfTaskChanged)="onTaskChanged()"
+    (dueDateChanged)="onTaskChanged()"
     (formSubmit)="onFormSubmitEvent()"
   ></valtimo-task-detail-modal>
 </div>
@@ -201,7 +201,7 @@
     [iconOnly]="!!collapsed"
     [ngbTooltip]="
       startableItems.length === 0
-        ? 'No action'
+        ? ('case.noStartableProcesses' | translate)
         : collapsed
           ? ('case.startSubProcess' | translate)
           : null

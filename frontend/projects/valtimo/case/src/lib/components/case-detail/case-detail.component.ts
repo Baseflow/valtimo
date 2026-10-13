@@ -700,8 +700,13 @@ export class CaseDetailComponent implements AfterViewInit, OnDestroy {
     this.tabLoader?.refreshView();
   }
 
-  public onDueDateChanged(): void {
+  public onTaskChanged(): void {
     this.caseDetailLayoutService.refreshTasks();
+  }
+
+  /** @deprecated Use `onTaskChanged()`. */
+  public onDueDateChanged(): void {
+    this.onTaskChanged();
   }
 
   public onMainContentHeaderHeightChange(height: number): void {

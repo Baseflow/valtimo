@@ -186,6 +186,7 @@
     },
     "caseUpdated": "Dossier aangepast",
     "startSubProcess": "Start",
+    "noStartableProcesses": "Geen actie",
     "noLinkedStartProcessNotification": "Er is geen startformulier gekoppeld",
     "noLinkedProcessNotification": "Er is geen formulier gekoppeld",
     "configure": "Configureer",
@@ -4109,11 +4110,11 @@
     "close": "Paneel sluiten",
     "loadError": "Dit paneel kon niet worden geladen.",
     "resize": "Paneelbreedte aanpassen",
-    "pinned": "Blijft open als je naar andere pagina's gaat",
+    "pinned": "Blijft open als u naar andere pagina's gaat",
     "originFor": "Voor",
     "originFallback": "het dossier",
     "originElsewhere": "Niet deze pagina",
-    "originElsewhereDescription": "Dit paneel hoort bij {{label}}, niet bij de pagina waarop je nu bent."
+    "originElsewhereDescription": "Dit paneel hoort bij {{label}}, niet bij de pagina waarop u nu bent."
   },
   "adminSettings": {
     "title": "Instellingen",

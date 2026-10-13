@@ -44,7 +44,9 @@
   }
 
   @if (
-    !(isLoading$ | async) && (startProcessLinkType$ | async) === 'form' && (formDefinition$ | async)
+    !(isLoading$ | async) &&
+    (startProcessLinkType$ | async) === 'form' &&
+    (formDefinition$ | async)
   ) {
     <valtimo-form-io
       #form
@@ -111,7 +113,7 @@
       title: 'case.draftProcessConfirmation.warningTitle' | translate,
       message: 'case.draftProcessConfirmation.warningDescription' | translate,
       showClose: false,
-      lowContrast: true,
+      lowContrast: true
     }"
   ></cds-notification>
 </valtimo-confirmation-modal>

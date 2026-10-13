@@ -199,7 +199,8 @@ export class CaseDetailLayoutService implements OnDestroy {
         taskPanelWidth,
       ]) => {
         const panelFormOpen =
-          !!startFormPanel || (!!taskAndProcessLinkOpenedInPanel && formDisplayType === 'panel');
+          !!startFormPanel ||
+          (!!taskAndProcessLinkOpenedInPanel && formDisplayType === 'panel');
 
         if (!showTaskList && !panelFormOpen) {
           return this.getInitialLayout();

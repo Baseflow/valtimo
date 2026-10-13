@@ -111,10 +111,9 @@ import {CaseDetailHeaderWidgetComponent} from './components/case-detail-header-w
 import {CaseListTabsComponent} from './components/case-list-tabs/case-list-tabs.component';
 import {CaseListToolbarComponent} from './components/case-list-toolbar/case-list-toolbar.component';
 import {GenericCaseListComponent} from './components/generic-case-list/generic-case-list.component';
+import {CaseActionsLayoutDirective} from './directives/case-actions-layout.directive';
 
 export type TabsFactory = () => Map<string, object>;
-
-import {CaseActionsLayoutDirective} from './directives/case-actions-layout.directive';
 
 @NgModule({
   declarations: [

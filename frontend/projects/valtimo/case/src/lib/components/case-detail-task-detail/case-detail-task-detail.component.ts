@@ -84,9 +84,10 @@ export class CaseDetailsTaskDetailComponent implements OnDestroy {
       subtitle: `${this.translateService.instant('taskDetail.taskCreated')} ${value?.task?.created}`,
     });
   }
+  /** Emitted once the task detail is closed (destroyed). */
   @Output() public readonly closeEvent = new EventEmitter();
-  /** The back button; the host decides whether to close, e.g. after confirming unsaved edits. */
-  @Output() public readonly closeRequest = new EventEmitter<void>();
+  /** Back button clicked; the host decides whether to close, e.g. after confirming unsaved edits. */
+  @Output() public readonly closeRequestEvent = new EventEmitter<void>();
   @Output() public readonly assignmentOfTaskChanged = new EventEmitter();
   @Output() public readonly dueDateChanged = new EventEmitter();
   @Output() public readonly activeChange = new EventEmitter<boolean>();
@@ -162,7 +163,7 @@ export class CaseDetailsTaskDetailComponent implements OnDestroy {
   }
 
   public onClose(): void {
-    this.closeRequest.emit();
+    this.closeRequestEvent.emit();
   }
 
   public onCurrentIntermediateSaveEvent(value: IntermediateSubmission | null): void {
@@ -216,11 +217,9 @@ export class CaseDetailsTaskDetailComponent implements OnDestroy {
 
     // a 403 or 404 means the user can no longer view the task; these are expected
     // outcomes here, so they are skipped to avoid a global error toast
-    return this.taskService
-      .getTask(taskId, ['403', '404'])
-      .pipe(
-        catchError(error => (error?.status === 403 || error?.status === 404 ? of(null) : EMPTY))
-      );
+    return this.taskService.getTask(taskId, ['403', '404']).pipe(
+      catchError(error => (error?.status === 403 || error?.status === 404 ? of(null) : EMPTY))
+    );
   }
 
   private handleAssignmentChangeResponse(response: any): void {

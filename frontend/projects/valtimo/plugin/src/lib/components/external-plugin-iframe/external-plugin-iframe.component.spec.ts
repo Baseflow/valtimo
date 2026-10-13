@@ -158,10 +158,7 @@ describe('ExternalPluginIframeComponent', () => {
   });
 
   describe('plugin data proxy', () => {
-    const proxyToPlugin = (
-      method: string,
-      path: string
-    ): Promise<{status: number; body: unknown}> =>
+    const proxyToPlugin = (method: string, path: string): Promise<{status: number; body: unknown}> =>
       (component as any)._proxyToPlugin(method, path, undefined, undefined);
 
     beforeEach(() => {

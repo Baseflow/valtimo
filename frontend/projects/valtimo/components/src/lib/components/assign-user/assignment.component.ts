@@ -37,6 +37,7 @@ import {
   ToggletipModule,
 } from 'carbon-components-angular';
 import {Edit16, Group16, User16, UserFollow16} from '@carbon/icons';
+import {NgbTooltipModule} from '@ng-bootstrap/ng-bootstrap';
 import {BehaviorSubject, combineLatest, Observable, of, Subject, Subscription, take} from 'rxjs';
 import {NamedUser, TeamResponseDto, UserIdentity} from '@valtimo/shared';
 import {UserProviderService} from '@valtimo/security';
@@ -59,6 +60,7 @@ import {AssignmentChangeEvent, AssignmentMode} from '../../models/assignment.mod
     LayerModule,
     ComboBoxModule,
     RemoveClassnamesDirective,
+    NgbTooltipModule,
   ],
 })
 export class AssignmentComponent implements OnInit, OnChanges, OnDestroy {

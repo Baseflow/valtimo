@@ -186,6 +186,7 @@
     },
     "caseUpdated": "Case updated",
     "startSubProcess": "Start",
+    "noStartableProcesses": "No action",
     "noLinkedStartProcessNotification": "There is no start form linked",
     "noLinkedProcessNotification": "There is no form linked",
     "configure": "Configure",

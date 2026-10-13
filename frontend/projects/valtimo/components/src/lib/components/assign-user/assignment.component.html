@@ -30,7 +30,6 @@
 >
   <ng-container *ngIf="isAssigned || hasPermission">
     <div
-      [attr.title]="compact && isAssigned ? assignedNames : null"
       [class.assignment-container--compact]="compact"
       class="assignment-container"
       (mouseenter)="onMouseEnter()"
@@ -39,6 +38,7 @@
       <!-- Assigned state: display pills with icons -->
       <div
         class="assigned-display element"
+        [ngbTooltip]="compact ? assignedNames : null"
         [ngClass]="{
           active: hasPermission
             ? isAssigned && !obs.mouseIsOver && !obs.editToggletipOpen
@@ -73,6 +73,7 @@
           cdsButton="ghost"
           [attr.aria-label]="compact ? ('assignment.clickToEdit' | translate) : null"
           [iconOnly]="compact"
+          [ngbTooltip]="compact ? assignedNames : null"
           [size]="compact ? 'md' : 'sm'"
           class="click-to-edit-button"
         >
@@ -156,8 +157,8 @@
           [removeClassnames]="['cds--toggletip-button']"
           cdsButton="tertiary"
           [attr.aria-label]="compact ? (assignButtonTranslationKey | translate) : null"
-          [attr.title]="compact ? (assignButtonTranslationKey | translate) : null"
           [iconOnly]="compact"
+          [ngbTooltip]="compact ? (assignButtonTranslationKey | translate) : null"
           [size]="compact ? 'md' : 'sm'"
           class="assign-button"
         >
