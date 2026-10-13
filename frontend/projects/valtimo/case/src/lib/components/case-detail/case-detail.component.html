@@ -236,6 +236,7 @@
   [showModalSubject$]="showPendingChangesModal$"
   (cancelEvent)="onLeaveCancel()"
   (confirmEvent)="onLeaveConfirm()"
+  [attr.data-test-id]="testIds.pendingChangesModal"
 ></valtimo-confirmation-modal>
 
 <ng-container renderInPageHeader [fullWidth]="true" [wrap]="true">

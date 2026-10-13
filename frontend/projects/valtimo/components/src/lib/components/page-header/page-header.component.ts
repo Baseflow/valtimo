@@ -22,7 +22,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
-import {distinctUntilChanged, filter, map, Subscription} from 'rxjs';
+import {filter, map, Subscription} from 'rxjs';
 import {UserInterfaceService} from '../../services/user-interface.service';
 import {PageHeaderService, PageTitleService} from '../../services';
 import {fromResizeObserver} from '../../utils/observer.utils';
@@ -65,12 +65,11 @@ export class PageHeaderComponent implements AfterViewInit, OnDestroy {
   }
 
   private openPageHeadResizeObserver(): void {
-    // Width changes resize the head too; only a new height is news.
+    // Width-only resizes emit too: FitPage re-fits when content above it reflows.
     this._pageHeadHeightSubscription = fromResizeObserver(this._pageHead.nativeElement)
       .pipe(
         map(entries => entries[entries.length - 1]?.contentRect.height),
-        filter((height): height is number => !!height),
-        distinctUntilChanged()
+        filter((height): height is number => !!height)
       )
       .subscribe(height => this.pageHeaderService.setPageHeadHeight(height));
   }

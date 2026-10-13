@@ -521,21 +521,26 @@ while looking things up elsewhere. The panel is generic: it does not know what i
 
 - **Offer, don't open.** Any of your surfaces calls `sdk.offerPanel({bundleKey, key, title,
   subtitle})`. The latest offer takes the panel over from whatever it showed. Re-offering the
-  `key` that is already shown does not reload it; it only shows the panel again if the user had
-  closed it. So a case tab can safely offer on every load.
+  `key` that is already shown for the same case does not reload it; it only shows the panel again
+  if the user had closed it. So a case tab can safely offer on every load. The same `key` offered
+  for another case replaces the content with a fresh iframe that gets that case's context.
 - **Closing only hides.** The user's close button hides the panel and keeps your iframe alive.
-  Your content stays until you call `withdrawPanel(key)` or another offer replaces it.
+  Your content stays until you call `withdrawPanel(key)` (from any of your surfaces, whichever
+  case it was offered for) or another offer replaces it.
 - **The panel does not survive a reload.** It belongs to the browser tab. If your content must
   come back, offer it again from the surface where it belongs (for example the case tab of the
   case it is about), and keep its state in your backend.
 - **Your own bundles only.** GZAC resolves the bundle from your configuration's manifest; an
   offer cannot point at a URL. `key`, `title`, `subtitle` and `bundleKey` are strings of at most
   200 characters, and `pinned` is a boolean; an invalid offer is ignored.
+- **Context.** The panel iframe gets your offer's `context` plus the offering surface's own
+  context, which wins on equal keys. `documentId` and `caseDefinitionKey` are GZAC's: values you
+  put under those names are ignored.
 - **Pinning is your choice.** Pass `pinned: true` to mark the panel with a pin, which tells the
   user it stays open on other pages. It is only a marker: GZAC does not withdraw content on
   navigation either way, so when your content closes is up to you.
 - **The panel header shows what your content belongs to.** When the offering surface is
-  case-bound, GZAC names that case below your title
+  case-bound (a case tab, case widget or task form), GZAC names that case below your title
   (for example "For Inwonerplan #12") and links back to it; your `subtitle` is shown as plain
   text. When the user is on another page, the case is marked "Not this page", so they do not
   mistake your content for the case they are looking at. GZAC resolves the case name itself, so

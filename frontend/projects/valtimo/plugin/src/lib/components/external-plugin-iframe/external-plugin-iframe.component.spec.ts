@@ -18,6 +18,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {TranslateModule} from '@ngx-translate/core';
 import {SidePanelService} from '@valtimo/components';
 import {ConfigService} from '@valtimo/shared';
+import {of} from 'rxjs';
 import {ExternalPluginIframeComponent} from './external-plugin-iframe.component';
 
 describe('ExternalPluginIframeComponent', () => {
@@ -354,6 +355,7 @@ describe('ExternalPluginIframeComponent', () => {
         'offer',
         'withdraw',
       ]);
+      (sidePanelService as any).current$ = of(null);
       (component as any)._sidePanelService = sidePanelService;
       iframe = document.createElement('iframe');
       document.body.appendChild(iframe);
@@ -377,7 +379,7 @@ describe('ExternalPluginIframeComponent', () => {
       });
 
       const offer = sidePanelService.offer.calls.mostRecent().args[0];
-      expect(offer.key).toBe('external-plugin:config-1:evaluatie:session-1');
+      expect(offer.key).toBe('external-plugin:config-1:evaluatie:session-1:doc-1');
       expect(offer.origin?.route).toEqual(['/cases', 'plan', 'document', 'doc-1']);
       expect(offer.pinned).toBeTrue();
       expect(offer.inputs?.['context']).toEqual({
@@ -421,12 +423,66 @@ describe('ExternalPluginIframeComponent', () => {
       expect(sidePanelService.offer).not.toHaveBeenCalled();
     });
 
-    it('withdraws only under its own configuration namespace', () => {
+    it('gives the same key offered for another case its own panel', () => {
+      sendPanelMessage('offerPanel', {key: 'notes', title: 'Notes'});
+      component.context = {documentId: 'doc-2', caseDefinitionKey: 'plan'};
+      sendPanelMessage('offerPanel', {key: 'notes', title: 'Notes'});
+
+      const [first, second] = sidePanelService.offer.calls.allArgs().map(([offer]) => offer);
+      expect(first.key).not.toBe(second.key);
+      expect(second.inputs?.['context']).toEqual({documentId: 'doc-2', caseDefinitionKey: 'plan'});
+    });
+
+    it('ignores a case named by the plugin on a surface without a case', () => {
+      component.context = {};
+
+      sendPanelMessage('offerPanel', {
+        key: 'session-1',
+        title: 'Evaluatie',
+        context: {documentId: 'forged', caseDefinitionKey: 'forged', evaluationId: 'e-1'},
+      });
+
+      const offer = sidePanelService.offer.calls.mostRecent().args[0];
+      expect(offer.origin).toBeUndefined();
+      expect(offer.inputs?.['context']).toEqual({evaluationId: 'e-1'});
+    });
+
+    it('resolves the case of a surface that only knows its document', () => {
+      const documentService = jasmine.createSpyObj('DocumentService', [
+        'getDocument',
+        'getActiveCaseDefinition',
+        'getDocumentDefinition',
+      ]);
+      documentService.getDocument.and.returnValue(of({definitionId: {name: 'plan'}}));
+      (component as any)._injector = {get: () => documentService};
+      component.context = {documentId: 'doc-1', taskId: 'task-1'};
+
+      sendPanelMessage('offerPanel', {key: 'session-1', title: 'Evaluatie'});
+
+      const offer = sidePanelService.offer.calls.mostRecent().args[0];
+      expect(offer.origin?.route).toEqual(['/cases', 'plan', 'document', 'doc-1']);
+    });
+
+    it('withdraws its content offered for any case', () => {
+      (sidePanelService as any).current$ = of({
+        key: 'external-plugin:config-1:evaluatie:session-1:doc-9',
+      });
+
       sendPanelMessage('withdrawPanel', {bundleKey: 'evaluatie', key: 'session-1'});
 
       expect(sidePanelService.withdraw).toHaveBeenCalledWith(
-        'external-plugin:config-1:evaluatie:session-1'
+        'external-plugin:config-1:evaluatie:session-1:doc-9'
       );
+    });
+
+    it('does not withdraw content of another configuration', () => {
+      (sidePanelService as any).current$ = of({
+        key: 'external-plugin:config-2:evaluatie:session-1:doc-1',
+      });
+
+      sendPanelMessage('withdrawPanel', {bundleKey: 'evaluatie', key: 'session-1'});
+
+      expect(sidePanelService.withdraw).not.toHaveBeenCalled();
     });
   });
 });
