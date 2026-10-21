@@ -282,7 +282,7 @@ export class TaskDetailModalComponent implements OnInit, OnDestroy {
 
   private refreshTask(response: any): void {
     const currentTask = this.task$.getValue();
-    const fetchedTask = response.task as Partial<Task>;
+    const fetchedTask = response?.task as Partial<Task>;
     if (!currentTask || !fetchedTask) return;
 
     const mergedTask: Task = {...currentTask};

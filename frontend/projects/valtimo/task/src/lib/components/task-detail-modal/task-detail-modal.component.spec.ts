@@ -144,6 +144,16 @@ describe('TaskDetailModalComponent', () => {
     flush();
   }));
 
+  it('keeps the list row when the task no longer exists', fakeAsync(() => {
+    taskService.getTask.and.returnValue(of(null));
+
+    component.openTaskDetails(caseListRowTask);
+    tick();
+
+    expect(component.task$.getValue()?.name).toBe('Case list task');
+    flush();
+  }));
+
   it('does not refetch a task that already holds its assignment', fakeAsync(() => {
     component.openTaskDetails(task);
     tick();
