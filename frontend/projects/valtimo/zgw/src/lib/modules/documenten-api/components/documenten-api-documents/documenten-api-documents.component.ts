@@ -61,6 +61,7 @@ import {
   ReplaySubject,
   Subject,
   Subscription,
+  throwError,
 } from 'rxjs';
 import {catchError, filter, map, retry, shareReplay, switchMap, take, tap} from 'rxjs/operators';
 import {
@@ -631,6 +632,14 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
           .canGeneratePreview(pluginConfigurationId)
           .pipe(
             map((supported): PreviewSupportStatus => (supported ? 'supported' : 'unsupported')),
+            // A 404 means the documenten-api-preview module isn't deployed on this Valtimo
+            // instance at all, which is itself a confirmed "no preview available" - not a
+            // transient failure, so it shouldn't go through the retry path below.
+            catchError((error: HttpErrorResponse) =>
+              error.status === 404
+                ? of<PreviewSupportStatus>('unsupported')
+                : throwError(() => error)
+            ),
             // Retry transient failures a few times before giving up, so a brief blip resolves
             // silently for rows that are already subscribed instead of immediately reading as
             // "unsupported".
