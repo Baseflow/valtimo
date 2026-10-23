@@ -4,23 +4,6 @@ Release date: 07-10-2026
 
 ---
 
-## New Features
-
-### Prepare to support Documenten API WOPI plugin
-
-Expand the Documenten API overview to include a button to edit content. This button will only be shown if the
-Documenten API WOPI plugin is installed and configured.
-
----
-
-## Enhancements
-
-### New enhancement title
-
-New enhancement explanation.
-
----
-
 ## Bugfixes
 
 | Area | Fix |
