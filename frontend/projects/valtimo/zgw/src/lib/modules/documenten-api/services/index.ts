@@ -20,4 +20,3 @@ export * from './documenten-api-link-process.service';
 export * from './documenten-api-preview.service';
 export * from './documenten-api-tag.service';
 export * from './documenten-api-version.service';
-export * from './documenten-api-wopi.service';

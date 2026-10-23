@@ -18,8 +18,10 @@ import {HttpErrorResponse} from '@angular/common/http';
 import {
   Component,
   ElementRef,
+  Inject,
   OnDestroy,
   OnInit,
+  Optional,
   signal,
   TemplateRef,
   ViewChild,
@@ -64,6 +66,7 @@ import {catchError, filter, map, shareReplay, switchMap, take, tap} from 'rxjs/o
 import {
   COLUMN_VIEW_TYPES,
   ConfiguredColumn,
+  DOCUMENT_ACTION_ITEM,
   DOCUMENTEN_COLUMN_KEYS,
   DocumentenApiFilePermissions,
   DocumentenApiFilterModel,
@@ -78,7 +81,6 @@ import {
   DocumentenApiColumnService,
   DocumentenApiDocumentService,
   DocumentenApiPreviewService,
-  DocumentenApiWopiService,
   DocumentenApiVersionService,
 } from '../../services';
 import {DocumentenApiFilterComponent} from '../documenten-api-filter/documenten-api-filter.component';
@@ -184,13 +186,6 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
       label: 'document.edit',
       callback: this.onEditMetadata.bind(this),
       disabled$: this.editDisabled.bind(this),
-      type: 'normal',
-    },
-    {
-      label: 'document.editContent',
-      callback: this.onEditContent.bind(this),
-      disabled$: this.editContentDisabled.bind(this),
-      hidden$: this.editContentHidden.bind(this),
       type: 'normal',
     },
     {
@@ -361,7 +356,6 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     private readonly documentenApiDocumentService: DocumentenApiDocumentService,
     private readonly documentenApiPreviewService: DocumentenApiPreviewService,
     private readonly documentenApiVersionService: DocumentenApiVersionService,
-    private readonly documentenApiWopiService: DocumentenApiWopiService,
     private readonly documentService: DocumentService,
     private readonly downloadService: DownloadService,
     private readonly iconService: IconService,
@@ -370,10 +364,18 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     private readonly router: Router,
     private readonly translateService: TranslateService,
     private readonly uploadProviderService: UploadProviderService,
-    private readonly userProviderService: UserProviderService
+    private readonly userProviderService: UserProviderService,
+    @Optional()
+    @Inject(DOCUMENT_ACTION_ITEM)
+    private readonly pluginDocumentActionItems: ActionItem[] | null
   ) {
     this.iconService.register(Filter16);
     this.valtimoEndpointUri = configService.config.valtimoApi.endpointUri;
+    // Plugins (e.g. a document-editing plugin) contribute their own row action through the
+    // DOCUMENT_ACTION_ITEM multi-provider token instead of this component knowing about them.
+    if (this.pluginDocumentActionItems) {
+      this.actionItems = [...this.actionItems, ...this.pluginDocumentActionItems];
+    }
   }
 
   public ngOnInit(): void {
@@ -533,34 +535,6 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     this.showUploadModal$.next(true);
   }
 
-  public onEditContent(file: DocumentenApiRelatedFile): void {
-    // Open the tab synchronously so the browser still associates it with this click's user activation;
-    // the URL is filled in once the backend responds. Navigating there directly (rather than fetching the
-    // WOPI host's HTML ourselves and rendering it via a blob: URL) keeps that markup on the WOPI host's own
-    // origin instead of ours.
-    const wopiTab = window.open('', '_blank');
-    if (wopiTab) {
-      // Prevent the WOPI host page (which may be on an external origin) from using
-      // window.opener to navigate this application tab.
-      wopiTab.opener = null;
-    }
-
-    this.documentId$.pipe(take(1)).subscribe(documentId => {
-      this.documentenApiWopiService
-        .getWopiHostPage(file.pluginConfigurationId, documentId, file.fileId)
-        .subscribe({
-          next: ({url}) => {
-            if (wopiTab) {
-              wopiTab.location.href = url;
-            }
-          },
-          error: () => {
-            wopiTab?.close();
-          },
-        });
-    });
-  }
-
   public closeMetadataModal(): void {
     this.uploadError.set(null);
     this.showUploadModal$.next(false);
@@ -631,12 +605,11 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
   }
 
   // The document list of a case (zaak) can contain documents from different Documenten APIs, so
-  // checks if the preview or edit contents features are supported needs to be done per each file's
-  // pluginConfigurationId - these caches just make sure that, for a given configId, the
-  // "is preview/WOPI supported" HTTP check fires once and is shared by every row (and by both the
+  // checking if the preview feature is supported needs to be done per each file's
+  // pluginConfigurationId - this cache just makes sure that, for a given configId, the
+  // "is preview supported" HTTP check fires once and is shared by every row (and by both the
   // disabled$ and hidden$ callbacks) instead of once per row per callback.
   private readonly canGeneratePreviewCache = new Map<string, Observable<boolean>>();
-  private readonly hasWopiSupportCache = new Map<string, Observable<boolean>>();
 
   private canGeneratePreview$(pluginConfigurationId: string): Observable<boolean> {
     if (!this.canGeneratePreviewCache.has(pluginConfigurationId)) {
@@ -655,39 +628,6 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     }
 
     return this.canGeneratePreviewCache.get(pluginConfigurationId);
-  }
-
-  private hasWopiSupport$(pluginConfigurationId: string): Observable<boolean> {
-    if (!this.hasWopiSupportCache.has(pluginConfigurationId)) {
-      this.hasWopiSupportCache.set(
-        pluginConfigurationId,
-        this.documentenApiWopiService.checkWopiSupport(pluginConfigurationId).pipe(
-          catchError(() => {
-            // Don't cache failures as "unsupported" - evict so the next call retries the request.
-            this.hasWopiSupportCache.delete(pluginConfigurationId);
-            return of(false);
-          }),
-          shareReplay(1)
-        )
-      );
-    }
-
-    return this.hasWopiSupportCache.get(pluginConfigurationId);
-  }
-
-  private editContentHidden(file: DocumentenApiRelatedFile): Observable<boolean> {
-    return this.hasWopiSupport$(file?.pluginConfigurationId).pipe(
-      map(hasWopiSupport => !hasWopiSupport)
-    );
-  }
-
-  private editContentDisabled(file: DocumentenApiRelatedFile): Observable<boolean> {
-    return combineLatest([
-      this.hasWopiSupport$(file?.pluginConfigurationId),
-      this.filePermissions$,
-    ]).pipe(
-      map(([hasWopiSupport, permissions]) => !hasWopiSupport || !permissions[file.fileId]?.canModify)
-    );
   }
 
   private previewHidden(file: DocumentenApiRelatedFile): Observable<boolean> {
