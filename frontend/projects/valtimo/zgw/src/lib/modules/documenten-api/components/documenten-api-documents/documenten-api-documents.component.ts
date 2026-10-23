@@ -62,7 +62,7 @@ import {
   Subject,
   Subscription,
 } from 'rxjs';
-import {catchError, filter, map, shareReplay, switchMap, take, tap} from 'rxjs/operators';
+import {catchError, filter, map, retry, shareReplay, switchMap, take, tap} from 'rxjs/operators';
 import {
   COLUMN_VIEW_TYPES,
   ConfiguredColumn,
@@ -86,6 +86,13 @@ import {
 import {DocumentenApiFilterComponent} from '../documenten-api-filter/documenten-api-filter.component';
 import {DocumentenApiMetadataModalComponent} from '../documenten-api-metadata-modal/documenten-api-metadata-modal.component';
 import {DocumentenApiPreviewModalComponent} from '../documenten-api-preview-modal/documenten-api-preview-modal.component';
+
+// A confirmed "unsupported" response (no preview plugin configured for this Documenten API) is
+// kept distinct from a failed check (network error, backend down, ...) - see previewSupportStatus$.
+type PreviewSupportStatus = 'supported' | 'unsupported' | 'error';
+
+const PREVIEW_CHECK_RETRY_COUNT = 3;
+const PREVIEW_CHECK_RETRY_DELAY_MS = 2000;
 
 @Component({
   selector: 'valtimo-case-detail-tab-documenten-api-documents',
@@ -609,18 +616,31 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
   // pluginConfigurationId - this cache just makes sure that, for a given configId, the
   // "is preview supported" HTTP check fires once and is shared by every row (and by both the
   // disabled$ and hidden$ callbacks) instead of once per row per callback.
-  private readonly canGeneratePreviewCache = new Map<string, Observable<boolean>>();
+  //
+  // A confirmed "unsupported" response (no preview plugin configured for this Documenten API) is
+  // kept distinct from a failed check (network error, backend down, ...): collapsing both into one
+  // boolean would silently hide "Preview" on a transient failure, with no way for an
+  // already-rendered row to recover other than an unrelated table refetch.
+  private readonly canGeneratePreviewCache = new Map<string, Observable<PreviewSupportStatus>>();
 
-  private canGeneratePreview$(pluginConfigurationId: string): Observable<boolean> {
+  private previewSupportStatus$(pluginConfigurationId: string): Observable<PreviewSupportStatus> {
     if (!this.canGeneratePreviewCache.has(pluginConfigurationId)) {
       this.canGeneratePreviewCache.set(
         pluginConfigurationId,
         this.documentenApiPreviewService
           .canGeneratePreview(pluginConfigurationId)
           .pipe(
+            map((supported): PreviewSupportStatus => (supported ? 'supported' : 'unsupported')),
+            // Retry transient failures a few times before giving up, so a brief blip resolves
+            // silently for rows that are already subscribed instead of immediately reading as
+            // "unsupported".
+            retry({count: PREVIEW_CHECK_RETRY_COUNT, delay: PREVIEW_CHECK_RETRY_DELAY_MS}),
             catchError(() => {
+              // Don't cache a failure as "unsupported" - evict so a later row render (e.g. once
+              // the backend recovers) checks again instead of permanently treating this
+              // Documenten API as having no preview plugin configured.
               this.canGeneratePreviewCache.delete(pluginConfigurationId);
-              return of(false);
+              return of<PreviewSupportStatus>('error');
             }),
             shareReplay(1)
           )
@@ -630,20 +650,24 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     return this.canGeneratePreviewCache.get(pluginConfigurationId);
   }
 
+  // Only hidden on a confirmed "unsupported" response. On 'error' the action stays visible (and,
+  // if the user is otherwise allowed to view the document, enabled) so the user has a way to
+  // retry: clicking it attempts the real preview, which is its own, immediate signal of whether it
+  // actually works.
   private previewHidden(file: DocumentenApiRelatedFile): Observable<boolean> {
-    return this.canGeneratePreview$(file?.pluginConfigurationId).pipe(
-      map(canGeneratePreview => !canGeneratePreview)
+    return this.previewSupportStatus$(file?.pluginConfigurationId).pipe(
+      map(status => status === 'unsupported')
     );
   }
 
   private previewDisabled(file: DocumentenApiRelatedFile): Observable<boolean> {
     return combineLatest([
-      this.canGeneratePreview$(file?.pluginConfigurationId),
+      this.previewSupportStatus$(file?.pluginConfigurationId),
       this.filePermissions$,
     ]).pipe(
       map(
-        ([canGeneratePreview, permissions]) =>
-          !canGeneratePreview || !permissions[file.fileId]?.canView
+        ([status, permissions]) =>
+          status === 'unsupported' || !permissions[file.fileId]?.canView
       )
     );
   }
