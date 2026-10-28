@@ -37,7 +37,7 @@ Lists and maps that a script fills with its own objects now also stay readable a
 | Forms | Clicking the submit button of a form more than once no longer submits the form multiple times; after a failed submit the button can be used again. |
 | Processes | A boundary error event now catches a BPMN error thrown by a plugin, also inside a building block. |
 | Scripts | Running JavaScript in processes and decision tables no longer makes the application use more and more memory over time. Scripts also run faster. |
-| Dashboard | Gauge widgets now show the exact count instead of a decimal number for some value and total combinations (for example 45.99 instead of 46). |
+| Dashboard | Gauge widgets now show the exact count instead of a decimal number for some value and total combinations (for example 46 instead of 45.99). |
 ---
 
 ## Security
