@@ -18,12 +18,6 @@ New feature explanation.
 
 ## Enhancements
 
-### Hide document actions that aren't available
-
-Row actions in the case document list can now be hidden entirely instead of only shown disabled,
-and plugins can contribute their own actions to that list. The **Preview** action is hidden
-rather than shown disabled when no preview plugin is configured for the document's Documenten API.
-
 ### More reliable JavaScript results
 
 Values returned by JavaScript in process scripts and decision tables now stay usable after the script has finished. Lists, sets and key-value maps returned by a script keep their contents; previously some of them came back empty.
