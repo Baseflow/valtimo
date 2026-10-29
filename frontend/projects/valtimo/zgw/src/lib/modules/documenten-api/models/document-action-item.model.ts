@@ -21,8 +21,10 @@ import {ActionItem} from '@valtimo/components';
  * Multi-provider token that external plugins use to contribute their own overflow-menu action
  * (e.g. an "edit content" action backed by a document-editing plugin) to the case document list,
  * without the list itself depending on which plugins are installed. Each provider entry
- * (`{provide: DOCUMENT_ACTION_ITEM, useValue: ..., multi: true}`) contributes one ActionItem; the
- * documents component merges all contributed items into its own fixed action list. The item's
+ * (`{provide: DOCUMENT_ACTION_ITEM_TOKEN, useValue: ..., multi: true}`) contributes one ActionItem;
+ * the documents component merges all contributed items into its own fixed action list. The item's
  * callback/disabled$/hidden$ receive the row's `DocumentenApiRelatedFile`.
  */
-export const DOCUMENT_ACTION_ITEM = new InjectionToken<ActionItem>('DOCUMENT_ACTION_ITEM');
+export const DOCUMENT_ACTION_ITEM_TOKEN = new InjectionToken<ActionItem[]>(
+  'DOCUMENT_ACTION_ITEM_TOKEN'
+);

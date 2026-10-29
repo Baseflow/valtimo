@@ -67,7 +67,7 @@ import {catchError, filter, map, retry, shareReplay, switchMap, take, tap} from 
 import {
   COLUMN_VIEW_TYPES,
   ConfiguredColumn,
-  DOCUMENT_ACTION_ITEM,
+  DOCUMENT_ACTION_ITEM_TOKEN,
   DOCUMENTEN_COLUMN_KEYS,
   DocumentenApiFilePermissions,
   DocumentenApiFilterModel,
@@ -374,13 +374,13 @@ export class CaseDetailTabDocumentenApiDocumentsComponent implements OnInit, OnD
     private readonly uploadProviderService: UploadProviderService,
     private readonly userProviderService: UserProviderService,
     @Optional()
-    @Inject(DOCUMENT_ACTION_ITEM)
+    @Inject(DOCUMENT_ACTION_ITEM_TOKEN)
     private readonly pluginDocumentActionItems: ActionItem[] | null
   ) {
     this.iconService.register(Filter16);
     this.valtimoEndpointUri = configService.config.valtimoApi.endpointUri;
     // Plugins (e.g. a document-editing plugin) contribute their own row action through the
-    // DOCUMENT_ACTION_ITEM multi-provider token instead of this component knowing about them.
+    // DOCUMENT_ACTION_ITEM_TOKEN multi-provider token instead of this component knowing about them.
     if (this.pluginDocumentActionItems) {
       this.actionItems = [...this.actionItems, ...this.pluginDocumentActionItems];
     }
